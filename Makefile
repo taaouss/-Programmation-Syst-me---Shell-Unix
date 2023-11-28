@@ -2,10 +2,10 @@ CC = gcc
 CFLAGS = -Wall -Wextra
 LIBS = -lreadline
 
-main: main.c
-	$(CC) $(CFLAGS) -o jsh main.c $(LIBS)
+jsh: main.c commandes_internes.c formatage_prompt.c mystring.c
+	$(CC) $(CFLAGS) -o jsh main.c commandes_internes.c formatage_prompt.c mystring.c $(LIBS)
 
-run: main
+run: jsh
 	./jsh
 
 clean:
