@@ -24,7 +24,9 @@ int main()
     char *args[20];
     while (1)
     {
-        buf = readline(afficher_prompt());
+        char *affiche = afficher_prompt();
+        buf = readline(affiche);
+        free(affiche);
         if (buf == NULL)
         {
             return code_retour;
@@ -107,8 +109,11 @@ int main()
                         }
                     }
                 }
+                for (int j=0;j<i;j++){
+                    free(args[j]);
+                }
             }
-
+            free(buf);
             // add_history(buf);
         }
     }

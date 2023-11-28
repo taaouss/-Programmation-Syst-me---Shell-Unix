@@ -31,5 +31,8 @@ char *afficher_prompt()
     string_append(chaine, "\001\033[00m\002");
     string_append(chaine, "$ ");
     string_delete(cwd);
-    return chaine->data;
+    char *lyes =malloc ((52)* sizeof(char)); 
+    strcpy(lyes,chaine->data);
+    string_delete(chaine);
+    return lyes;
 }
