@@ -106,22 +106,14 @@ int main()
                     else if (strcmp(commande, "exit") == 0)
                     {
                         // Sortir du programme avec un code de retour optionnel
-                        // verifier si cette commande n'a qu'un seul argument en entrée
-                        //sinon la commande est incorrecte
 
-                        if (args[2] == NULL)
-                        {
                             if (args[1] != NULL)
                             {
                                 code_retour = atoi(args[1]);
                             }
                             free(rep_precedent);
                             exit(code_retour);
-                        }
-                        else
-                        {
-                            perror("Commande incorrecte \n");
-                        }
+        
                     }
                     else
                     {
