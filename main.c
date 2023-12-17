@@ -9,27 +9,37 @@
 #include "mystring.h"
 #include "commandes_internes.h"
 #include "formatage_prompt.h"
+#include "gestion_job.h"
 
 #define NBR_MAX_ARGUMENTS 20
 
+
+
+
 int main()
 {
+
     // Nettoyer le terminal
     system("clear");
 
     // Rediriger la sortie de readline vers stderr
     rl_outstream = stderr;
-
+    struct Job tab_jobs[20];//tableau de jobs
+    struct Job nouveau_job= malloc(sizeof(struct Job));
     char *buf, *affiche, *commande, *argument;
     int code_retour = 0, status;
     char *args[NBR_MAX_ARGUMENTS];
     size_t len;
-    int pid;
+    int pid, job =0;
     char *rep_precedent = malloc(sizeof(char) * PATH_MAX);
+
     getcwd(rep_precedent, sizeof(char) * PATH_MAX);
 
     while (1)
-    {
+   {    // faut faire ici une maj du tableau des jobs 
+        maj_jobs(tab_jobs,job);
+
+
         // Afficher le prompt et lire la commande de l'utilisateur
         affiche = afficher_prompt();
         buf = readline(affiche);
@@ -81,6 +91,10 @@ int main()
                             perror("Commande incorrecte \n");
                         }
                     }
+                    else if(strcmp(commande, "jobs") == 0){
+                      if ((code_retour = jobs( tab_jobs,job)) != 0)
+                      perror("Erreur lors de la commande cd");
+                    }
                     else if (strcmp(commande, "?") == 0)
                     {
                         // Afficher le code de retour
@@ -118,6 +132,7 @@ int main()
                     else
                     {
                         // Créer un nouveau processus pour exécuter la commande externe
+    
                         pid = fork();
                         switch (pid)
                         {
@@ -148,6 +163,7 @@ int main()
 
             // Libérer la mémoire allouée pour la commande
             free(buf);
+            free(nouveau_job);
         }
     }
 
