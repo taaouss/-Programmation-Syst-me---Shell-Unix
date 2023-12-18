@@ -9,7 +9,7 @@
 #include "mystring.h"
 #include "commandes_internes.h"
 #include "formatage_prompt.h"
-#include "gestion_job.h"
+#include "gestion_jobs.h"
 
 #define NBR_MAX_ARGUMENTS 20
 
@@ -25,7 +25,6 @@ int main()
     // Rediriger la sortie de readline vers stderr
     rl_outstream = stderr;
     struct Job tab_jobs[20];//tableau de jobs
-    struct Job nouveau_job= malloc(sizeof(struct Job));
     char *buf, *affiche, *commande, *argument;
     int code_retour = 0, status;
     char *args[NBR_MAX_ARGUMENTS];
@@ -163,7 +162,6 @@ int main()
 
             // Libérer la mémoire allouée pour la commande
             free(buf);
-            free(nouveau_job);
         }
     }
 

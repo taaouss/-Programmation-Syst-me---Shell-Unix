@@ -5,17 +5,19 @@
 #include <string.h>
 #include "gestion_jobs.h"
 #include <stdbool.h>
+#include <sys/wait.h>
 
 
+const char *etat_str[] = { "RUNNING", "STOPPED", "DETACHED", "KILLED", "DONE"};
 
 int jobs(struct Job* jobs, int nbr_jobs) {
     int i = 0;
     if (jobs == NULL) return 0;
 
     while (i < nbr_jobs) {
-        if (jobs[i] != NULL) {
-            fprintf("[%d] %d %s %s\n", jobs[i]->numero_job, jobs[i]->processus[0], jobs[i]->etat, jobs[i]->command);
-        }
+       
+        printf("[%d] %d %s %s\n", jobs[i].numero_job, jobs[i].processus[0], jobs[i].etat, jobs[i].command);
+     
         i++;
     }
     return 1;
@@ -35,32 +37,29 @@ struct Job* creer_jobs(int nombre_jobs, pid_t processus, char* commande) {
     strncpy(resultat->command, commande, MAX_COMMAND_LENGTH - 1);
     resultat->command[MAX_COMMAND_LENGTH - 1] = '\0';
     resultat->nbr_processus = 1;
-    resultat->etat = etat_str[0]; // running
-    resultat->processus = malloc(NBR_MAX_PROCESSUS * sizeof(pid_t));
+    strcpy(resultat->etat, etat_str[0]);
     resultat->processus[0] = processus; // un processus
-
     return resultat;
 }
 
 void maj_jobs(struct Job* jobs, int nbr_jobs) {
-    bool tous_finis, un_termine, termine_signal, detache;
+    bool tous_finis,  termine_signal, detache;
     int termine_stop;
     int i = 0, terminated_count = 0;
     if (jobs == NULL) return;
 
     while (i < nbr_jobs) {
         tous_finis = true;
-        un_termine = false;
         termine_signal = false;
         termine_stop = 0;
         terminated_count = 0;
         detache = false;
 
-        if (strcmp(jobs[i]->etat, etat_str[4]) != 0) { // Le job n'est pas done
+        if (strcmp(jobs[i].etat, etat_str[4]) != 0) { // Le job n'est pas done
 
-            for (int j = 0; j < jobs[i]->nbr_processus; j++) {
+            for (int j = 0; j < jobs[i].nbr_processus; j++) {
                 // On va parcourir les processus
-                pid_t processus = jobs[i]->processus[j];
+                pid_t processus = jobs[i].processus[j];
                 int status;
                 int resultat = waitpid(processus, &status, WNOHANG | WUNTRACED);
                 if (resultat == 0) {
@@ -96,18 +95,18 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
 
             if (tous_finis) {
                 if (termine_signal) { // killed
-                    strcpy(jobs[i]->etat, etat_str[3]);
+                    strcpy(jobs[i].etat, etat_str[3]);
                 } else if (detache) { // detached
-                    strcpy(jobs[i]->etat, etat_str[2]);
-                } else if (termine_stop == (jobs[i]->nbr_processus - terminated_count)) { // stopped
-                    strcpy(jobs[i]->etat, etat_str[1]);
+                    strcpy(jobs[i].etat, etat_str[2]);
+                } else if (termine_stop == (jobs[i].nbr_processus - terminated_count)) { // stopped
+                    strcpy(jobs[i].etat, etat_str[1]);
                 } else {
                     // done, ne doit pas y'avoir de detached
-                    strcpy(jobs[i]->etat, etat_str[4]);
+                    strcpy(jobs[i].etat, etat_str[4]);
                 }
             } else { // !(tous_finis)
                 // running
-                strcpy(jobs[i]->etat, etat_str[0]);
+                strcpy(jobs[i].etat, etat_str[0]);
             }
         }
 

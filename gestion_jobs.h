@@ -13,8 +13,7 @@ struct Job {
     int nbr_processus;
 };
 
-const char *etat_str[] = { "RUNNING", "STOPPED", "DETACHED", "KILLED", "DONE"};
-
+extern const char *etat_str[];
 int jobs(struct Job *jobs, int nbr_jobs);
 
 struct Job* creer_jobs(int nombre_jobs, pid_t pere ,char* commande);
