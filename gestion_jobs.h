@@ -13,7 +13,7 @@ struct Job {
     int nbr_processus;
 };
 
-const char *etat_str[] = {"INITIAL", "RUNNING", "STOPPED", "DETACHED", "KILLED", "DONE"};
+const char *etat_str[] = { "RUNNING", "STOPPED", "DETACHED", "KILLED", "DONE"};
 
 int jobs(struct Job *jobs, int nbr_jobs);
 
