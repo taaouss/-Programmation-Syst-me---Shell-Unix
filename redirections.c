@@ -9,7 +9,6 @@
 #include "redirections.h"
 
 char mes_symboles[7][4] = {"<", ">", ">|", ">>", "2>>", "2>", "2>|"};
-int exit_code = 0;
 
 // cmd < fic
 int lecture(char *fic)
@@ -17,10 +16,9 @@ int lecture(char *fic)
     int fd = open(fic, O_RDONLY);
     if (fd == -1)
     {
-        exit_code = 1;
         return 1;
     }
-    dup2(fd, 0);
+    dup2(fd, 0); // redirection de l'entrée standard vers le fichier
     return 0;
 }
 
@@ -32,14 +30,13 @@ int sans_ecrasement_stdout(char *fic)
     {
         if (errno == EEXIST)
         {
-            write(2, "le fichier existe déjà\n", strlen("le fichier existe déjà\n"));
+            write(2, "le fichier existe déjà\n", strlen("le fichier existe déjà\n")); // 2 pour stderr
         }
-        exit_code = 1;
         return 1;
     }
     else
     {
-        dup2(fd, 1);
+        dup2(fd, 1); // redirection de la sortie standard vers le fichier
         return 0;
     }
 }
@@ -50,7 +47,6 @@ int avec_ecrasement_stdout(char *fic)
     int fd = open(fic, O_CREAT | O_TRUNC | O_WRONLY, 0666);
     if (fd == -1)
     {
-        exit_code = 1;
         return 1;
     }
     dup2(fd, 1);
@@ -63,7 +59,6 @@ int concat_stdout(char *fic)
     int fd = open(fic, O_WRONLY | O_CREAT | O_APPEND, 0666);
     if (fd == -1)
     {
-        exit_code = 1;
         return 1;
     }
     dup2(fd, 1);
@@ -76,7 +71,37 @@ int concat_stderr(char *fic)
     int fd = open(fic, O_WRONLY | O_CREAT | O_APPEND, 0666);
     if (fd == -1)
     {
-        exit_code = 1;
+        return 1;
+    }
+    dup2(fd, 2);
+    return 0;
+}
+
+// cmd 2> fic
+int sans_ecrasement_stderr(char *fic)
+{
+    int fd = open(fic, O_CREAT | O_EXCL | O_WRONLY, 0666);
+    if (fd == -1)
+    {
+        if (errno == EEXIST)
+        {
+            write(2, "le fichier existe déjà\n", strlen("le fichier existe déjà\n")); // 2 pour stderr
+        }
+        return 1;
+    }
+    else
+    {
+        dup2(fd, 2); // redirection de la sortie standard vers le fichier
+        return 0;
+    }
+}
+
+// cmd 2>| fic
+int avec_ecrasement_stderr(char *fic)
+{
+    int fd = open(fic, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+    if (fd == -1)
+    {
         return 1;
     }
     dup2(fd, 2);
