@@ -26,7 +26,7 @@ int main()
     // Rediriger la sortie de readline vers stderr
     rl_outstream = stderr;
     struct Job tab_jobs[20];//tableau de jobs
-    char *buf, *affiche, *commande, *argument;
+    char *buf, *affiche, *commande, *argument,*buf_tmp;
     int code_retour = 0, status;
     char *args[NBR_MAX_ARGUMENTS];
     size_t len;
@@ -64,6 +64,7 @@ int main()
                     buf[len - 1] = '\0';
 
                 // Extraire la commande et les arguments
+                buf_tmp=strdup(buf);
                 commande = strtok(buf, " ");
                 int i = 0;
                 args[i] = strdup(commande);
@@ -78,7 +79,7 @@ int main()
                 if (commande != NULL)
                 {
                     if(is_cmdArrierePlan(args,i)){
-                        i = modifie_args(args,i);
+                        i = modifie_args(args,i,&buf_tmp);
                         code_retour=cmdArrierePlan (args,nb_job,tab_jobs,i,len);
                         nb_job++;
                         printf("job cmd %s\n",(tab_jobs[0]).etat);
