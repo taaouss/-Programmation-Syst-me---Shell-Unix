@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "commandes_internes.h"
+#include "gestion_jobs.h"
 
 // Fonction pour afficher le répertoire de travail actuel 
 int pwd()
@@ -62,3 +63,6 @@ int cd(char *argument, char *rep_precedent)
     strcpy(rep_precedent, precedent_tmp);
     return 0;
 }
+
+
+

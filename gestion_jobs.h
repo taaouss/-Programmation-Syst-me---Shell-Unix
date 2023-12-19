@@ -21,4 +21,8 @@ struct Job* creer_jobs(int nombre_jobs, pid_t pere ,char* commande);
 
 void maj_jobs(struct Job *jobs, int nbr_jobs) ;
 
+int is_stopped(struct Job* jobs, int nbr_jobs);
+
+int is_running(struct Job* jobs, int nbr_jobs);
+
 #endif
