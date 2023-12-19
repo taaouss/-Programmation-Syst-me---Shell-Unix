@@ -28,7 +28,8 @@ void enlever_dernier_caractere(char *chaine) {
     }
 }
 
-int modifie_args(char **args, int nb_args){
+int modifie_args(char **args, int nb_args,char **chaine){
+   enlever_dernier_caractere(*chaine);
     if (nb_args== 1)
     {
       enlever_dernier_caractere(args[0]);
