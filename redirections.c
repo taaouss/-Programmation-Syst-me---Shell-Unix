@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include "redirections.h"
 
-char mes_symboles[7][4] = {"<", ">", ">|", ">>", "2>>", "2>", "2>|"};
+char mes_symboles[7][4] = {"2>>", ">>", "2>|", "2>", ">|", ">", "<"};
 
 // cmd < fic
 int lecture(char *fic)
@@ -162,27 +162,25 @@ char *extractCommandAndArgs(const char *commandLine, int index)
 // Extraction du nom du fichier de redirection
 char *extractRedirectionFileName(const char *commandLine, int index)
 {
-    // Allouer de la mémoire pour la sous-chaîne
-    int length = strlen(commandLine) - index;
-    char *result = (char *)malloc(length + 1); // +1 pour le caractère nul
-    if (!result)
-    {
-        return NULL; // Échec de l'allocation
-    }
-    // Copier la sous-chaîne
-    strncpy(result, commandLine + index, length);
-    result[length] = '\0'; // Ajouter le caractère de fin de chaîne
-
-    // Vérifier si plusieurs fichiers sont spécifiés
-    char *resulttmp = strdup(result);
-    if (!resulttmp)
-    {
-        free(result);
-        return NULL; // Échec de l'allocation
-    }
-
-    char *token = strtok(resulttmp, " ");
+    char *result = NULL;
+    char *resulttmp = strdup(commandLine);
+    char *token = strtok(resulttmp + index, " "); // +index pour ne pas prendre le symbole de redirection
     int cpt = 0;
+    if (token == NULL)
+    {
+        return NULL;
+    }
+    else
+    {
+        int length = strlen(token);
+        result = (char *)malloc(length + 1); // +1 pour le caractère nul
+        if (!result)
+        {
+            return NULL; // Échec de l'allocation
+        }
+        strncpy(result, token, length);
+        result[length] = '\0'; // Ajouter le caractère de fin de chaîne
+    }
     while (token != NULL)
     {
         cpt++;
@@ -203,7 +201,7 @@ char *extractRedirectionFileName(const char *commandLine, int index)
 
 int execute_redirection(char *redirection, char *redirectionFileName)
 {
-    int code_retour;
+    int code_retour = 0;
     if (strcmp(redirection, "<") == 0)
     {
         code_retour = lecture(redirectionFileName);
