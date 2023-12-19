@@ -26,5 +26,7 @@ int is_stopped(struct Job* jobs, int nbr_jobs);
 int is_running(struct Job* jobs, int nbr_jobs);
 
 void liberer_job(struct Job* job);
+int nb_jobs_encours(struct Job* jobs, int nbr_jobs);
+int jobs_err(struct Job* jobs, int nbr_jobs) ;
 
 #endif

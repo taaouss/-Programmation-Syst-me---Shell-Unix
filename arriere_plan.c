@@ -53,29 +53,31 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_arg
     perror("fork");
     exit(1);
   }
-  struct Job* job;
-  char *chaine=malloc(len *sizeof(char));
-  strcpy(chaine,args[0]);
-  for (int i = 1; i < nb_args; i++)
-  {
-    strcat(chaine," ");
-    strcat(chaine,args[i]);
-  }
-  strcat(chaine,"\0");
   
-  job = creer_jobs(nombre_jobs, r ,chaine);
-  tab_jobs[nombre_jobs]= *job;
   switch (r){
     case 0:
     
    
 
-    
+    //jobs(tab_jobs, nombre_jobs);
     execvp(args[0],args);
     perror("Erreur lors de l'exécution de la commande");
     exit(1); // Valeur de sortie arbitraire en cas d'erreur
     break;
     default:
+    struct Job* job;
+    char *chaine=malloc(len *sizeof(char));
+    strcpy(chaine,args[0]);
+    for (int i = 1; i < nb_args; i++)
+    {
+     strcat(chaine," ");
+     strcat(chaine,args[i]);
+    }
+    strcat(chaine,"\0");
+  
+    job = creer_jobs(nombre_jobs, r ,chaine);
+    tab_jobs[nombre_jobs]= *job;
+    fprintf(stderr,"[XXX]   YYYYYYYY        %s    %s\n", tab_jobs[nombre_jobs].etat, tab_jobs[nombre_jobs].command);
     return 1;
     break;
   }
