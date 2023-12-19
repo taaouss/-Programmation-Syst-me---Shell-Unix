@@ -6,21 +6,23 @@
 #include "gestion_jobs.h"
 #include <stdbool.h>
 #include <sys/wait.h>
+#include <errno.h>
+
 const char *etat_str[] = { "RUNNING", "STOPPED", "DETACHED", "KILLED", "DONE"};
 
 
 
 int jobs(struct Job* jobs, int nbr_jobs) {
     int i = 0;
-    if (jobs == NULL) return 0;
+    if (jobs == NULL) return 1;
 
     while (i < nbr_jobs) {
        
-            printf("[%d] %d %s %s\n", jobs[i].numero_job, jobs[i].processus[0], jobs[i].etat, jobs[i].command);
+            printf("[%d] %d %s %s\n", jobs[i].numero_job + 1, jobs[i].processus[0], jobs[i].etat, jobs[i].command);
   
         i++;
     }
-    return 1;
+    return 0;
 }
 
 
@@ -49,6 +51,7 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
     int termine_stop;
     int i = 0, terminated_count = 0;
     if (jobs == NULL) return;
+   
     while (i < nbr_jobs) {
         tous_finis = true;
         termine_signal = false;
@@ -62,22 +65,30 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                // printf("lyes2sshs %s \n",jobs[i].command);
                 // On va parcourir les processus
                 pid_t processus = jobs[i].processus[j];
+                pid_t pgid = getpgid(processus);
                 int status;
                 int resultat = waitpid(processus, &status, WNOHANG | WUNTRACED);
                 if (resultat == 0) {
                     // Le processus n'a pas encore terminé
                     tous_finis = false;
+
                 } else if (resultat > 0) { // Processus a fini
                     if (WIFEXITED(status)) { // Soit done soit detached
                         terminated_count++;
 
                         // TODO: Vérifier si les processus non lancés du shell ont terminé
-                        pid_t pgid = getpgid(processus);
+                        
+                        if (pgid == -1) {
+                        perror("getpgid");
+                        exit(EXIT_FAILURE);
+                        }
                         int status2;
                         int resultat2 = waitpid(-pgid, &status2, WNOHANG);
-
-                        if (resultat2 == -1) {
-                            perror("waitpid");
+                        if (errno == ECHILD) {
+                        // Aucun enfant à attendre (tous les processus du groupe ont terminé)
+                        }
+                        else if (resultat2 == -1) {
+                            perror("waitpid pour le groupe");
                             exit(EXIT_FAILURE);
                         } else if (resultat2 == 0) {
                             // Au moins un processus du groupe est encore en cours d'exécution.
@@ -119,20 +130,25 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
 int is_stopped(struct Job* jobs, int nbr_jobs){
    int i =0;
    while (i < nbr_jobs) {
-      if (strcmp(jobs[i].etat, etat_str[1]) == 0) return 0;
+      if (strcmp(jobs[i].etat, etat_str[1]) == 0) return 1;
       i++;
     
     }
-   return 1;
+   return 0;
 }
 
 int is_running(struct Job* jobs, int nbr_jobs){
    int i =0;
    while (i < nbr_jobs) {
-      if (strcmp(jobs[i].etat, etat_str[0]) == 0) return 0;
+      if (strcmp(jobs[i].etat, etat_str[0]) == 0) return 1;
       i++;
     
     }
-   return 1;
+   return 0;
 
 }
+
+void liberer_job(struct Job* job) {
+    free(job);
+}
+
