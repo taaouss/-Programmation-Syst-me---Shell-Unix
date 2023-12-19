@@ -10,6 +10,7 @@
 #include "commandes_internes.h"
 #include "formatage_prompt.h"
 #include "gestion_jobs.h"
+#include "arriere_plan.h"
 
 #define NBR_MAX_ARGUMENTS 20
 
@@ -29,14 +30,14 @@ int main()
     int code_retour = 0, status;
     char *args[NBR_MAX_ARGUMENTS];
     size_t len;
-    int pid, job =0;
+    int pid, nb_job =0;
     char *rep_precedent = malloc(sizeof(char) * PATH_MAX);
 
     getcwd(rep_precedent, sizeof(char) * PATH_MAX);
 
     while (1)
    {    // faut faire ici une maj du tableau des jobs 
-        maj_jobs(tab_jobs,job);
+        maj_jobs(tab_jobs,nb_job);
 
 
         // Afficher le prompt et lire la commande de l'utilisateur
@@ -56,8 +57,10 @@ int main()
             // on vérifie si on a bien une commande en entrée et non  pas une ligne vide
             if (len != 0) 
             {
+
                 //enlever le saut de ligne causé parn Entrer du clavier
                 if (len > 0 && buf[len - 1] == '\n')
+
                     buf[len - 1] = '\0';
 
                 // Extraire la commande et les arguments
@@ -74,6 +77,14 @@ int main()
 
                 if (commande != NULL)
                 {
+                    if(is_cmdArrierePlan(args,i)){
+                        i = modifie_args(args,i);
+                        code_retour=cmdArrierePlan (args,nb_job,tab_jobs,i,len);
+                        nb_job++;
+                        printf("job cmd %s\n",(tab_jobs[0]).etat);
+                        
+                    }
+                    else{
                     if (strcmp(commande, "pwd") == 0)
                     {
                         // Exécuter la commande pwd
@@ -91,7 +102,7 @@ int main()
                         }
                     }
                     else if(strcmp(commande, "jobs") == 0){
-                      if ((code_retour = jobs( tab_jobs,job)) != 0)
+                      if ((code_retour = jobs( tab_jobs,nb_job)) != 0)
                       perror("Erreur lors de la commande cd");
                     }
                     else if (strcmp(commande, "?") == 0)
@@ -151,6 +162,7 @@ int main()
                             break;
                         }
                     }
+                    }
                 }
 
                 // Libérer la mémoire allouée pour les arguments
@@ -162,6 +174,7 @@ int main()
 
             // Libérer la mémoire allouée pour la commande
             free(buf);
+           
         }
     }
 
