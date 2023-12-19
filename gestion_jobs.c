@@ -115,3 +115,24 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
         i++;
     }
 }
+
+int is_stopped(struct Job* jobs, int nbr_jobs){
+   int i =0;
+   while (i < nbr_jobs) {
+      if (strcmp(jobs[i].etat, etat_str[1]) == 0) return 0;
+      i++;
+    
+    }
+   return 1;
+}
+
+int is_running(struct Job* jobs, int nbr_jobs){
+   int i =0;
+   while (i < nbr_jobs) {
+      if (strcmp(jobs[i].etat, etat_str[0]) == 0) return 0;
+      i++;
+    
+    }
+   return 1;
+
+}

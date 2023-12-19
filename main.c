@@ -102,8 +102,7 @@ int main()
                         }
                     }
                     else if(strcmp(commande, "jobs") == 0){
-                      if ((code_retour = jobs( tab_jobs,nb_job)) != 0)
-                      perror("Erreur lors de la commande cd");
+                      if ((code_retour = jobs( tab_jobs,nb_job)) != 1) perror("Erreur lors de la commande JOBS");
                     }
                     else if (strcmp(commande, "?") == 0)
                     {
@@ -129,15 +128,23 @@ int main()
                     }
                     else if (strcmp(commande, "exit") == 0)
                     {
-                        // Sortir du programme avec un code de retour optionnel
+                           // Sortir du programme avec un code de retour optionnel
 
                             if (args[1] != NULL)
                             {
                                 code_retour = atoi(args[1]);
                             }
+
                             free(rep_precedent);
-                            exit(code_retour);
-        
+
+                            if (is_stopped(tab_jobs, nb_job) || is_running(tab_jobs,nb_job)) {
+
+                             printf("Avertissement : Des jobs sont en cours d'exécution ou suspendus.\n");  
+
+                             } else {
+                        
+                             exit(code_retour);}
+                            
                     }
                     else
                     {

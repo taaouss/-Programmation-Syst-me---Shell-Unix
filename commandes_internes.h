@@ -4,6 +4,8 @@
 
 
 int pwd();
+
 int cd(char *argument, char *rep_precedent);
+
 
 #endif
