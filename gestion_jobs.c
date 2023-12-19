@@ -6,9 +6,9 @@
 #include "gestion_jobs.h"
 #include <stdbool.h>
 #include <sys/wait.h>
-
-
 const char *etat_str[] = { "RUNNING", "STOPPED", "DETACHED", "KILLED", "DONE"};
+
+
 
 int jobs(struct Job* jobs, int nbr_jobs) {
     int i = 0;
@@ -16,8 +16,8 @@ int jobs(struct Job* jobs, int nbr_jobs) {
 
     while (i < nbr_jobs) {
        
-        printf("[%d] %d %s %s\n", jobs[i].numero_job, jobs[i].processus[0], jobs[i].etat, jobs[i].command);
-     
+            printf("[%d] %d %s %s\n", jobs[i].numero_job, jobs[i].processus[0], jobs[i].etat, jobs[i].command);
+  
         i++;
     }
     return 1;
@@ -32,32 +32,34 @@ struct Job* creer_jobs(int nombre_jobs, pid_t processus, char* commande) {
         // Gérer l'échec de l'allocation mémoire
         return NULL;
     }
-
+    
     resultat->numero_job = nombre_jobs;
     strncpy(resultat->command, commande, MAX_COMMAND_LENGTH - 1);
     resultat->command[MAX_COMMAND_LENGTH - 1] = '\0';
     resultat->nbr_processus = 1;
-    strcpy(resultat->etat, etat_str[0]);
+    strcpy(resultat->etat,etat_str[0]); // running
+    //resultat->processus = malloc(NBR_MAX_PROCESSUS * sizeof(pid_t));
     resultat->processus[0] = processus; // un processus
+
     return resultat;
 }
 
 void maj_jobs(struct Job* jobs, int nbr_jobs) {
-    bool tous_finis,  termine_signal, detache;
+    bool tous_finis, termine_signal, detache;
     int termine_stop;
     int i = 0, terminated_count = 0;
     if (jobs == NULL) return;
-
     while (i < nbr_jobs) {
         tous_finis = true;
         termine_signal = false;
         termine_stop = 0;
         terminated_count = 0;
         detache = false;
-
+        
         if (strcmp(jobs[i].etat, etat_str[4]) != 0) { // Le job n'est pas done
 
             for (int j = 0; j < jobs[i].nbr_processus; j++) {
+               // printf("lyes2sshs %s \n",jobs[i].command);
                 // On va parcourir les processus
                 pid_t processus = jobs[i].processus[j];
                 int status;

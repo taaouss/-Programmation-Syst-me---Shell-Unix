@@ -8,12 +8,13 @@
 struct Job {
     int numero_job;
     pid_t processus[NBR_MAX_PROCESSUS];
-    char * etat;
+    char  etat[10];
     char command[MAX_COMMAND_LENGTH];
     int nbr_processus;
 };
 
-extern const char *etat_str[];
+
+
 int jobs(struct Job *jobs, int nbr_jobs);
 
 struct Job* creer_jobs(int nombre_jobs, pid_t pere ,char* commande);
