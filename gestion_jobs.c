@@ -24,7 +24,32 @@ int jobs(struct Job* jobs, int nbr_jobs) {
     }
     return 0;
 }
+int jobs_err(struct Job* jobs, int nbr_jobs) {
+    int i = 0;
+    if (jobs == NULL) return 1;
 
+    while (i < nbr_jobs) {
+       
+            fprintf(stderr,"[XXX]   YYYYYYYY        %s    %s\n", jobs[i].etat, jobs[i].command);
+  
+        i++;
+    }
+    return 0;
+}
+int nb_jobs_encours(struct Job* jobs, int nbr_jobs) {
+    int i = 0;
+    if (jobs == NULL) return 0;
+    int cpt =0;
+
+    while (i < nbr_jobs) {
+        if (strcmp(jobs[i].etat,etat_str[4])!=0)
+        {
+            cpt++;
+        }
+        i++;
+    }
+    return cpt;
+}
 
 struct Job* creer_jobs(int nombre_jobs, pid_t processus, char* commande) {
     // Incrementer le nombre de job avant l'appel à cette fonction
@@ -111,12 +136,15 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                     strcpy(jobs[i].etat, etat_str[3]);
                 } else if (detache) { // detached
                     strcpy(jobs[i].etat, etat_str[2]);
-                } else if (termine_stop == (jobs[i].nbr_processus - terminated_count)) { // stopped
-                    strcpy(jobs[i].etat, etat_str[1]);
-                } else {
-                    // done, ne doit pas y'avoir de detached
-                    strcpy(jobs[i].etat, etat_str[4]);
                 }
+                else if ((termine_stop != 0) && (termine_stop == (jobs[i].nbr_processus - terminated_count)) ){ // stopped
+                    printf("nb pros %d nb tremi %d  %s %d\n",jobs[i].nbr_processus ,terminated_count,jobs[i].command,termine_stop);
+                    strcpy(jobs[i].etat, etat_str[1]);
+                }else
+                {
+                    strcpy(jobs[i].etat, etat_str[4]);
+                } 
+               
             } else { // !(tous_finis)
                 // running
                 strcpy(jobs[i].etat, etat_str[0]);
