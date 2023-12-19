@@ -35,7 +35,7 @@ int main()
     int index = -1;
     char *redirection = NULL;
     char *redirectionFileName = NULL;
-    int redirection_file_result = 0; // Pour verifier si erreur dans les fichiers de redirections
+    int error_in_redirections = 0; // Pour verifier si erreur dans les fichiers de redirections
 
     getcwd(rep_precedent, sizeof(char) * PATH_MAX);
 
@@ -78,7 +78,8 @@ int main()
                     else
                     {
                         is_redirection(buf_tmp, &index, &redirection);
-                        redirection_file_result = 0;
+                        // printf("redirection %s\n", redirection);
+                        error_in_redirections = 0;
                         if (index != -1)
                         {
                             redirectionFileName = extractRedirectionFileName(buf_tmp, index + strlen(redirection) + 1);
@@ -86,13 +87,14 @@ int main()
                             {
                                 perror("Erreur lors de la redirection");
                                 code_retour = 1;
-                                redirection_file_result = 1;
+                                error_in_redirections = 1;
                             }
                             buf_tmp = extractCommandAndArgs(buf_tmp, index);
                             extract_args(buf_tmp, args, &commande, &buf_tmp, &i, strlen(buf_tmp));
-                            execute_redirection(redirection, redirectionFileName);
+                            error_in_redirections = execute_redirection(redirection, redirectionFileName);
+                            code_retour = error_in_redirections;
                         }
-                        if (redirection_file_result == 0)
+                        if (error_in_redirections == 0)
                         {
                             if (strcmp(commande, "pwd") == 0)
                             {
