@@ -48,7 +48,7 @@ int main()
         maj_jobs(tab_jobs, nb_job);
 
         // Afficher le prompt et lire la commande de l'utilisateur
-        affiche = afficher_prompt();
+        affiche = afficher_prompt(nb_jobs_encours(tab_jobs, nb_job));
         buf = readline(affiche);
         free(affiche);
 
@@ -182,7 +182,10 @@ int main()
                                 }
                             }
                         }
+                        maj_jobs(tab_jobs, nb_job);
+                    jobs_err(tab_jobs, nb_job);
                     }
+                    
                 }
 
                 // Libérer la mémoire allouée pour les arguments
