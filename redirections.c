@@ -222,57 +222,21 @@ void extract_redirections(char *commandline, Redirection **redirections, int *er
     return;
 }
 
-// void is_redirection(char *commandline, int *index, Redirection *redirections)
-// {
-//     // TODO: renvoyer l'indice minimal
-//     // TODO: Renvoyer un tableau de redirections
-//     // parcoure la ligne de commande et renvoie l'index du symbole de redirection s'il y en a un
-//     // sinon renvoie -1
-//     *index = -1;
-//     for (int i = 0; i < 7; i++)
-//     {
-//         char *commandline_tmp = strdup(commandline);              // pour ne pas modifier la ligne de commande
-//         char *redirection = strstr(commandline, mes_symboles[i]); // recherche du symbole de redirection
-//         if (redirection != NULL)
-//         {
-//             *index = redirectiontmp - commandline;
-//             redirections->redirection = mes_symboles[i];
-//             redirections->redirectionFileName = extractRedirectionFileName(commandline, *index + strlen(redirections->redirection) + 1);
-//             return;
-//         }
-//     }
-//     int i = 0;
-//     char *redirectiontmp = NULL;
-//     char *commandline_tmp = strdup(commandline);
-//     while (i < 7)
-//     {
-//         redirectiontmp = strstr(commandline_tmp, mes_symboles[i]);
-//         if (redirectiontmp != NULL)
-//         {
-//             // *index = redirectiontmp - commandline;
-//             *index = strlen(commandline) - strlen(redirectiontmp);
-//             *redirection = strtok(redirectiontmp, " ");
-//             if (*redirection != NULL)
-//             {
-//                 return;
-//             }
-//         }
-//         i++;
-//     }
-//     *index = -1;
-//     *redirection = NULL;
-//     free(commandline_tmp);
-// }
-
 // Fonction pour extraire la commande et les arguments
 char *extractCommandAndArgs(const char *commandLine, int index)
 {
-    char *result;
+    char *result = NULL;
 
     if (index != -1)
     {
         // Allouer de la mémoire pour la sous-chaîne
         result = (char *)malloc(sizeof(char) * (index + 1));
+        if (result == NULL)
+        {
+            // Gestion de l'erreur d'allocation
+            perror("Échec de l'allocation de mémoire");
+            return NULL;
+        }
         // Copier la sous-chaîne
         strncpy(result, commandLine, index);
         // Ajouter le caractère de fin de chaîne
@@ -282,6 +246,12 @@ char *extractCommandAndArgs(const char *commandLine, int index)
     {
         // Si pas de redirection, copier toute la ligne de commande
         result = strdup(commandLine);
+        if (result == NULL)
+        {
+            // Gestion de l'erreur d'allocation
+            perror("Échec de l'allocation de mémoire");
+            return NULL;
+        }
     }
 
     return result;
@@ -325,6 +295,17 @@ int execute_redirection(char *redirection, char *redirectionFileName)
     return code_retour;
 }
 
+void free_redirections(Redirection *redirections, int nb_redirections)
+{
+    for (int i = 0; i < nb_redirections; i++)
+    {
+        free(redirections[i].redirection);
+        free(redirections[i].redirectionFileName);
+    }
+    free(redirections);
+    return;
+}
+
 int execute_redirections(Redirection *redirections, int nb_redirections)
 {
     int code_retour = 0;
@@ -336,10 +317,15 @@ int execute_redirections(Redirection *redirections, int nb_redirections)
         code_retour = execute_redirection(redirections[i].redirection, redirections[i].redirectionFileName);
         if (code_retour != 0)
         {
+            // printf("Erreur in\n");
+            // printf("redirection: %s, file: %s\n", redirections[i].redirection, redirections[i].redirectionFileName);
+            // printf("code retour: %d\n", code_retour);
             reset_redirections(stdin_copy, stdout_copy, stderr_copy);
+            free_redirections(redirections, nb_redirections);
             return code_retour;
         }
     }
+    free_redirections(redirections, nb_redirections);
     return code_retour;
 }
 
@@ -350,44 +336,3 @@ void reset_redirections(int stdin_copy, int stdout_copy, int stderr_copy)
     dup2(stdout_copy, 1);
     dup2(stderr_copy, 2);
 }
-
-// // Extraction du nom du fichier de redirection
-// char *extractRedirectionFileName(const char *commandLine, int index)
-// {
-//     // TODO: Verifier si le nom du fichier n'est pas une redirection
-//     char *result = NULL;
-//     char *resulttmp = strdup(commandLine);
-//     char *token = strtok(resulttmp + index, " "); // +index pour ne pas prendre le symbole de redirection
-//     int cpt = 0;
-//     if (token == NULL)
-//     {
-//         return NULL;
-//     }
-//     else
-//     {
-//         int length = strlen(token);
-//         result = (char *)malloc(length + 1); // +1 pour le caractère nul
-//         if (!result)
-//         {
-//             return NULL; // Échec de l'allocation
-//         }
-//         strncpy(result, token, length);
-//         result[length] = '\0'; // Ajouter le caractère de fin de chaîne
-//     }
-//     while (token != NULL)
-//     {
-//         cpt++;
-//         token = strtok(NULL, " ");
-//     }
-//     free(resulttmp); // Libérer la mémoire allouée par strdup
-
-//     if (cpt == 1)
-//     {
-//         return result; // Un seul fichier spécifié
-//     }
-//     else
-//     {
-//         free(result); // Plusieurs fichiers spécifiés ou aucun
-//         return NULL;
-//     }
-// }
