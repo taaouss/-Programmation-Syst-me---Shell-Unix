@@ -72,7 +72,7 @@ int main()
                     if (is_cmdArrierePlan(args, i))
                     {
                         i = modifie_args(args, i, &buf_tmp);
-                        code_retour = cmdArrierePlan(args, nb_job, tab_jobs, i, len);
+                        code_retour = cmdArrierePlan(args, nb_job, tab_jobs, i, len,buf_tmp);
                         nb_job++;
                     }
                     else
@@ -153,7 +153,7 @@ int main()
 
                                     if (args[1] != NULL)
                                         code_retour = atoi(args[1]);
-                                    printf("argumet %d", code_retour);
+                                    
                                     free(rep_precedent);
                                     exit(code_retour);
                                 }

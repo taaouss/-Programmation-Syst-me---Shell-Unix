@@ -47,7 +47,7 @@ int modifie_args(char **args, int nb_args,char **chaine){
     return nb_args;
 }
 
-int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_args, size_t len){
+int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_args, size_t len,char * chaine){
   int r = fork();
   if (r == -1) {
     perror("fork");
@@ -66,18 +66,24 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_arg
     break;
     default:
     struct Job* job;
-    char *chaine=malloc(len *sizeof(char));
-    strcpy(chaine,args[0]);
+    //char *chaine=malloc(len *sizeof(char));
+    /*strcpy(chaine,args[0]);
     for (int i = 1; i < nb_args; i++)
     {
      strcat(chaine," ");
      strcat(chaine,args[i]);
     }
     strcat(chaine,"\0");
-  
+    printf("lyessssss : %s\n",chaine);*/
+    if (isspace(chaine[len - 2]) != 0)
+    {
+        chaine[len - 2]='\0';
+    }
+    
     job = creer_jobs(nombre_jobs, r ,chaine);
     tab_jobs[nombre_jobs]= *job;
-    fprintf(stderr,"[XXX]   YYYYYYYY        %s    %s\n", tab_jobs[nombre_jobs].etat, tab_jobs[nombre_jobs].command);
+    //fprintf(stderr,"[XXX]   YYYYYYYY        %s    %s\n", tab_jobs[nombre_jobs].etat, tab_jobs[nombre_jobs].command);
+    fprintf(stderr,"[%d]\t%d\tRunning\t%s\n",tab_jobs[nombre_jobs].numero_job + 1,tab_jobs[nombre_jobs].processus[0], tab_jobs[nombre_jobs].command);
     return 1;
     break;
   }

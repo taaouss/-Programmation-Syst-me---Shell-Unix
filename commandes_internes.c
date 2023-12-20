@@ -64,6 +64,70 @@ int cd(char *argument, char *rep_precedent)
     strcpy(rep_precedent, precedent_tmp);
     return 0;
 }
+/*
+int kill_commande(char *argument, int nbr_arguments, struct Job *jobs, int nbr_jobs) {
+    int signal, p;
+
+    if (nbr_arguments == 2) { 
+        //arguments 
+        memmove(argument + 1, argument + 2, strlen(argument + 1));
+        signal = atoi(argument + 1);
+        
+        if (signal <= 0) {
+            fprintf(stderr, "Erreur : Signal non valide\n");
+            return 1; 
+        } 
+    } else {
+        signal = SIGTERM;
+    }
+
+    if (nbr_arguments == 2) {
+        p = 2;
+    } else {
+        p = 1;
+    }
+
+    char *resultat = strstr(argument + p, "%");
+    if (resultat == NULL) {
+        //pid 
+        pid_t pid = atoi(argument + p);
+        int i = 0;
+        while (i < nbr_jobs) {
+            if (strcmp(jobs[i].etat, etat_str[4]) != 0) { 
+                // Le job n'est pas done car s'il est done, il est déjà tué
+                for (int j = 0; j < jobs[i].nbr_processus; j++) {
+                    if (jobs[i].processus[j] == (pid_t)pid) {
+                        kill(jobs[i].processus[j], signal);
+                    }
+                }
+            }
+            i++;
+        }
+    } else {
+        //job
+        memmove(resultat, resultat + 1, strlen(resultat));
+        int num = atoi(resultat);
+        
+        if (num > 0 && (num - 1) <= nbr_jobs) { // le job existe 
+            if (strcmp(jobs[num - 1].etat, etat_str[4]) != 0) {
+                for (int j = 0; j < jobs[num - 1].nbr_processus; j++) {
+                    kill(jobs[num - 1].processus[j], signal);
+                }
+            } else {
+                fprintf(stderr, "Erreur : Le job est déjà terminé (done)\n");
+                return 1;
+            }
+        } else {    
+            fprintf(stderr, "Erreur : Numéro de job incorrect\n");
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+*/
+
 
 int kill_commande(char *argument, int nbr_arguments, struct Job *jobs, int nbr_jobs) {
     int signal, p;
