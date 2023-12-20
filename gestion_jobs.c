@@ -30,7 +30,7 @@ int jobs_err(struct Job* jobs, int nbr_jobs) {
 
     while (i < nbr_jobs) {
        
-            fprintf(stderr,"[XXX]   YYYYYYYY        %s    %s\n", jobs[i].etat, jobs[i].command);
+            fprintf(stderr,"[XXX]   YYYYYYYY        %s    %s\n", jobs[nbr_jobs-i-1].etat, jobs[nbr_jobs-i-1].command);
   
         i++;
     }
