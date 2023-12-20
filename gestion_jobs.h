@@ -4,7 +4,7 @@
 
 #define NBR_MAX_PROCESSUS 20
 #define MAX_COMMAND_LENGTH 100
-
+extern const char *etat_str[];
 struct Job {
     int numero_job;
     pid_t processus[NBR_MAX_PROCESSUS];
@@ -12,13 +12,14 @@ struct Job {
     char command[MAX_COMMAND_LENGTH];
     int nbr_processus;
     int affiche;
+    int avant ;
 };
 
 
 
 int jobs(struct Job *jobs, int nbr_jobs);
 
-struct Job* creer_jobs(int nombre_jobs, pid_t pere ,char* commande);
+struct Job* creer_jobs(int nombre_jobs, pid_t pere ,char* commande,int avant);
 
 void maj_jobs(struct Job *jobs, int nbr_jobs) ;
 

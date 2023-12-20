@@ -58,7 +58,7 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_arg
     case 0:
     
    
-
+    setpgid(0,0);
     //jobs(tab_jobs, nombre_jobs);
     execvp(args[0],args);
     perror("Erreur lors de l'exécution de la commande");
@@ -80,9 +80,8 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_arg
         chaine[len - 2]='\0';
     }
     
-    job = creer_jobs(nombre_jobs, r ,chaine);
+    job = creer_jobs(nombre_jobs, r ,chaine,0);
     tab_jobs[nombre_jobs]= *job;
-    //fprintf(stderr,"[XXX]   YYYYYYYY        %s    %s\n", tab_jobs[nombre_jobs].etat, tab_jobs[nombre_jobs].command);
     fprintf(stderr,"[%d]\t%d\tRunning\t%s\n",tab_jobs[nombre_jobs].numero_job + 1,tab_jobs[nombre_jobs].processus[0], tab_jobs[nombre_jobs].command);
     return 1;
     break;
