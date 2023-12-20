@@ -3,7 +3,7 @@
 #include <sys/types.h>
 
 #define NBR_MAX_PROCESSUS 20
-#define MAX_COMMAND_LENGTH 20
+#define MAX_COMMAND_LENGTH 100
 
 struct Job {
     int numero_job;
@@ -11,6 +11,7 @@ struct Job {
     char  etat[10];
     char command[MAX_COMMAND_LENGTH];
     int nbr_processus;
+    int affiche;
 };
 
 

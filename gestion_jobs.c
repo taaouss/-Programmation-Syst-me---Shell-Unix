@@ -29,8 +29,23 @@ int jobs_err(struct Job* jobs, int nbr_jobs) {
     if (jobs == NULL) return 1;
 
     while (i < nbr_jobs) {
+        if (jobs[nbr_jobs-i-1].affiche == 1)
+        {
+            
+        
+            jobs[nbr_jobs-i-1].affiche =0;
+            if (strcmp(jobs[nbr_jobs-i-1].etat,"DONE")==0)
+            {
+                fprintf(stderr,"[%d]\t%d\tDone\t%s\n",jobs[i].numero_job + 1, jobs[i].processus[0], jobs[nbr_jobs-i-1].command);
+            }else if (strcmp(jobs[nbr_jobs-i-1].etat,"RUNNING")==0)
+            {
+                fprintf(stderr,"[%d]\t%d\tRunning\t%s\n",jobs[i].numero_job + 1, jobs[i].processus[0], jobs[nbr_jobs-i-1].command);
+            }
+        }  
+            
        
-            fprintf(stderr,"[XXX]   YYYYYYYY        %s    %s\n", jobs[nbr_jobs-i-1].etat, jobs[nbr_jobs-i-1].command);
+         //  fprintf(stderr,"[XXX]   YYYYYYYY        %s %s\n", jobs[nbr_jobs-i-1].etat, jobs[nbr_jobs-i-1].command);
+           
   
         i++;
     }
@@ -61,6 +76,7 @@ struct Job* creer_jobs(int nombre_jobs, pid_t processus, char* commande) {
     }
     
     resultat->numero_job = nombre_jobs;
+    resultat->affiche=0;
     strncpy(resultat->command, commande, MAX_COMMAND_LENGTH - 1);
     resultat->command[MAX_COMMAND_LENGTH - 1] = '\0';
     resultat->nbr_processus = 1;
@@ -142,6 +158,7 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                     strcpy(jobs[i].etat, etat_str[1]);
                 }else
                 {
+                    jobs[i].affiche=1;
                     strcpy(jobs[i].etat, etat_str[4]);
                 } 
                
