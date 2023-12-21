@@ -246,8 +246,8 @@ char *extractCommandAndArgs(const char *commandLine, int index)
     else
     {
         // Si pas de redirection, copier toute la ligne de commande
-     //  result = strdup(commandLine);
-        result = (char *)malloc(strlen(commandLine) + 1);
+       result = strdup(commandLine);
+       // result = (char *)malloc(strlen(commandLine) + 1);
         if (result == NULL)
         {
             // Gestion de l'erreur d'allocation
@@ -255,7 +255,7 @@ char *extractCommandAndArgs(const char *commandLine, int index)
             return NULL;
         }
     }
- // free(commandLine);
+ free(commandLine);
     return result;
 }
 
