@@ -82,6 +82,7 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_arg
     
     job = creer_jobs(nombre_jobs, r ,chaine,0);
     tab_jobs[nombre_jobs]= *job;
+    free(job);
     fprintf(stderr,"[%d]\t%d\tRunning\t%s\n",tab_jobs[nombre_jobs].numero_job + 1,tab_jobs[nombre_jobs].processus[0], tab_jobs[nombre_jobs].command);
     return 1;
     break;

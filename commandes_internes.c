@@ -132,10 +132,10 @@ int kill_commande(char *argument, int nbr_arguments, struct Job *jobs, int nbr_j
 int kill_commande(char **argument, int nbr_arguments, struct Job *jobs, int nbr_jobs) {
     int signal, p;
 
-      struct sigaction sa_default;
+     /* struct sigaction sa_default;
       sa_default.sa_handler = SIG_DFL;
       sa_default.sa_flags = 0;
-      sigaction(SIGTSTP, &sa_default, NULL);
+      sigaction(SIGTSTP, &sa_default, NULL);*/
   // fprintf(stderr, "nbr arguments %d \n",nbr_arguments);
     if (nbr_arguments == 3) { 
         //arguments 
@@ -214,7 +214,6 @@ int kill_commande(char **argument, int nbr_arguments, struct Job *jobs, int nbr_
             return 1;
         }
     }
-
     return 0;
 }
 

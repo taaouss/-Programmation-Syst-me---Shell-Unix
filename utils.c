@@ -17,7 +17,23 @@ void extract_args(char *buf, char **args, char **commande, char **buf_tmp, int *
     }
 
     // Dupliquer la chaîne de commande pour la manipulation
-    *buf_tmp = strdup(buf);
+
+    
+   // char * lyes=*buf_tmp;
+    //free(*buf_tmp);
+    int same=0;
+   if (buf != *buf_tmp)
+    {
+        free(*buf_tmp);
+        same =1;
+
+   }
+    
+    
+   *buf_tmp = strdup(buf);
+   
+   
+
 
     // Extraire la commande
     *commande = strtok(buf, " ");
@@ -30,6 +46,7 @@ void extract_args(char *buf, char **args, char **commande, char **buf_tmp, int *
     // Extraire les arguments
     while ((argument = strtok(NULL, " ")) != NULL && *i < NBR_MAX_ARGUMENTS)
     {
+      
         args[*i] = strdup(argument);
         (*i)++;
     }
