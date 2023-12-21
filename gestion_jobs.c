@@ -15,10 +15,29 @@ const char *etat_str[] = { "RUNNING", "STOPPED", "DETACHED", "KILLED", "DONE"};
 int jobs(struct Job* jobs, int nbr_jobs) {
     int i = 0;
     if (jobs == NULL) return 1;
+    char etat[10];
 
     while (i < nbr_jobs) {
-       
-            if ((strcmp(jobs[i].etat,etat_str[3])!=0)) printf("[%d] %d %s %s\n", jobs[i].numero_job + 1, jobs[i].processus[0], jobs[i].etat, jobs[i].command);
+             
+                
+
+            if ((strcmp(jobs[i].etat,etat_str[3])!=0)&& (jobs[i].avant == 0)) {
+                
+                strcpy(etat,jobs[i].etat);
+                if (strcmp(jobs[i].etat,"DONE")==0) strcpy(etat,"Done");
+                else if (strcmp(jobs[i].etat,"RUNNING")==0) strcpy(etat,"Running");
+                else if (strcmp(jobs[i].etat,"STOPPED")==0) strcpy(etat,"Stopped");
+                else if (strcmp(jobs[i].etat,"DETACHED")==0) strcpy(etat,"Detached");
+                else if (strcmp(jobs[i].etat,"KILLED")==0) strcpy(etat,"Killed");
+
+
+                printf("[%d]\t%d\t%s\t%s\n", jobs[i].numero_job + 1, jobs[i].processus[0], etat,jobs[i].command);
+                if ( jobs[i].affiche == 1)
+                {
+                    jobs[i].affiche = 0;
+                }
+                
+            }
   
         i++;
     }
