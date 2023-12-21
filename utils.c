@@ -8,9 +8,8 @@ void extract_args(char *buf, char **args, char **commande, char **buf_tmp, int *
     char *argument;
 
     // Initialisation de l'indice
-    
-
     // Enlever le saut de ligne causé par l'entrée du clavier
+
     if (len > 0 && buf[len - 1] == '\n')
     {
         buf[len - 1] = '\0';
@@ -18,22 +17,18 @@ void extract_args(char *buf, char **args, char **commande, char **buf_tmp, int *
 
     // Dupliquer la chaîne de commande pour la manipulation
 
-   int same=0;
    if (buf != *buf_tmp)
     {
-        free(*buf_tmp);
-        same =1;
-        *buf_tmp = strdup(buf);
-
+     free(*buf_tmp);
+    
+     *buf_tmp = strdup(buf);
    }else{
+    
         for (int j = 0; args[j] != NULL; j++)
         {
-                free(args[j]);
-               args[j] =NULL;
+         free(args[j]);
+         args[j] =NULL;
         }
-        
-        
-        
     }
     *i = 0;
     // Extraire la commande

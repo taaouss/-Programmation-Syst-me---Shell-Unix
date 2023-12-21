@@ -74,7 +74,7 @@ int main()
                     {
                         
                         i = modifie_args(args, i, &buf_tmp);
-                        code_retour = cmdArrierePlan(args, nb_job, tab_jobs, i, len, buf_tmp);
+                        code_retour = cmdArrierePlan(args, nb_job, tab_jobs, len, buf_tmp);
                         nb_job++;
                     }
                     else
@@ -147,7 +147,7 @@ int main()
                             else if (strcmp(commande, "kill") == 0)
                             {
                                 // Exécuter la commande kill
-                                if (code_retour = kill_commande(args, i, tab_jobs, nb_job) != 0)
+                                if ((code_retour = kill_commande(args, i, tab_jobs, nb_job) )!= 0)
                                 {
 
                                     perror("Erreur lors de la commande kill");
@@ -226,8 +226,6 @@ int main()
 
                          maj_jobs(tab_jobs, nb_job);
                          jobs_err(tab_jobs, nb_job);
-                         
-                     
                     }
                 }
 
@@ -240,7 +238,8 @@ int main()
             }
             // Libérer la mémoire allouée pour la commande
             free(buf);
-           
+            //free(commande);
+           // free(redirections);
              
         }
         
@@ -250,7 +249,7 @@ int main()
     }
 
     // Libérer la mémoire allouée pour le répertoire précédent
-     free(*rep_precedent);
+     free(rep_precedent);
      free(buf_tmp);
      free(args);
     for (int i = 0; i < nb_job; i++)

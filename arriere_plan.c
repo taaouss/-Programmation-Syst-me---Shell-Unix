@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 
 int is_cmdArrierePlan(char **args,int nb_args) {
@@ -48,7 +49,7 @@ int modifie_args(char **args, int nb_args,char **chaine){
     return nb_args;
 }
 
-int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_args, size_t len,char * chaine){
+int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[], size_t len,char * chaine){
   int r = fork();
   if (r == -1) {
     perror("fork");
@@ -56,7 +57,7 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_arg
   }
   
   switch (r){
-
+    
     case 0:
         setpgid(getpid(),getpid());
         execvp(args[0],args);
@@ -70,6 +71,7 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_arg
             {
             chaine[len - 2]='\0';
             }
+        
         job = creer_jobs(nombre_jobs, r ,chaine,0);
         tab_jobs[nombre_jobs]= *job;
         free(job);
