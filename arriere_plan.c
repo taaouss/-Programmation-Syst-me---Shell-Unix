@@ -56,37 +56,26 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_arg
   }
   
   switch (r){
+
     case 0:
-    
-   
-    setpgid(getpid(),getpid());
-    //jobs(tab_jobs, nombre_jobs);
-    execvp(args[0],args);
-    perror("Erreur lors de l'exécution de la commande");
-    exit(1); // Valeur de sortie arbitraire en cas d'erreur
+        setpgid(getpid(),getpid());
+        execvp(args[0],args);
+        perror("Erreur lors de l'exécution de la commande");
+        exit(1); // Valeur de sortie arbitraire en cas d'erreur
     break;
+
     default:
-    struct Job* job;
-    //char *chaine=malloc(len *sizeof(char));
-    /*strcpy(chaine,args[0]);
-    for (int i = 1; i < nb_args; i++)
-    {
-     strcat(chaine," ");
-     strcat(chaine,args[i]);
-    }
-    strcat(chaine,"\0");
-    printf("lyessssss : %s\n",chaine);*/
-    if (isspace(chaine[len - 2]) != 0)
-    {
-        chaine[len - 2]='\0';
-    }
-    
-    job = creer_jobs(nombre_jobs, r ,chaine,0);
-    tab_jobs[nombre_jobs]= *job;
-    free(job);
-    fprintf(stderr,"[%d]\t%d\tRunning\t%s\n",tab_jobs[nombre_jobs].numero_job + 1,tab_jobs[nombre_jobs].processus[0], tab_jobs[nombre_jobs].command);
-    return 0;
-    break;
+        struct Job* job;
+        if (isspace(chaine[len - 2]) != 0)
+            {
+            chaine[len - 2]='\0';
+            }
+        job = creer_jobs(nombre_jobs, r ,chaine,0);
+        tab_jobs[nombre_jobs]= *job;
+        free(job);
+        fprintf(stderr,"[%d]\t%d\tRunning\t%s\n",tab_jobs[nombre_jobs].numero_job + 1,tab_jobs[nombre_jobs].processus[0], tab_jobs[nombre_jobs].command);
+        return 0;
+        break;
   }
 
 

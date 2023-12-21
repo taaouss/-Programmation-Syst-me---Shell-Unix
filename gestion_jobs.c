@@ -32,12 +32,14 @@ int jobs(struct Job* jobs, int nbr_jobs) {
                 else if (strcmp(jobs[i].etat,"DETACHED")==0) strcpy(etat,"Detached");
                 else if (strcmp(jobs[i].etat,"KILLED")==0) strcpy(etat,"Killed");
 
-               if (strcmp(jobs[i].etat,etat_str[4])==0 && (jobs[i].affiche==0)){}
-               else{                printf("[%d]\t%d\t%s\t%s\n", jobs[i].numero_job + 1, jobs[i].processus[0], etat,jobs[i].command);
- if ( jobs[i].affiche == 1)
-                {
-                    jobs[i].affiche = 0;
-                }}
+               if (!(strcmp(jobs[i].etat,etat_str[4])==0 && (jobs[i].affiche==0))){
+                              
+                    printf("[%d]\t%d\t%s\t%s\n", jobs[i].numero_job + 1, jobs[i].processus[0], etat,jobs[i].command);
+                    if ( jobs[i].affiche == 1)
+                    {
+                        jobs[i].affiche = 0;
+                    }
+                }
                
                 
             }
@@ -71,11 +73,7 @@ int jobs_err(struct Job* jobs, int nbr_jobs) {
             {
                 fprintf(stderr,"[%d]\t%d\tStopped\t%s\n",jobs[i].numero_job + 1, jobs[i].processus[0], jobs[nbr_jobs-i-1].command);
             }
-        }  
-            
-       
-         //  fprintf(stderr,"[XXX]   YYYYYYYY        %s %s\n", jobs[nbr_jobs-i-1].etat, jobs[nbr_jobs-i-1].command);
-           
+        }             
   
         i++;
     }
@@ -97,14 +95,12 @@ int nb_jobs_encours(struct Job* jobs, int nbr_jobs) {
 }
 
 struct Job* creer_jobs(int nombre_jobs, pid_t processus, char* commande, int avant) {
-    // Incrementer le nombre de job avant l'appel à cette fonction
-
+   
     struct Job* resultat = malloc(sizeof(struct Job));
     if (resultat == NULL) {
         // Gérer l'échec de l'allocation mémoire
         return NULL;
     }
-    
     resultat->numero_job = nombre_jobs;
     resultat->affiche=0;
     strncpy(resultat->command, commande, MAX_COMMAND_LENGTH - 1);
@@ -112,14 +108,12 @@ struct Job* creer_jobs(int nombre_jobs, pid_t processus, char* commande, int ava
     resultat->nbr_processus = 1;
     resultat->avant = avant ;
     strcpy(resultat->etat,etat_str[0]); // running
-    //resultat->processus = malloc(NBR_MAX_PROCESSUS * sizeof(pid_t));
-    resultat->processus[0] = processus; // un processus
+    resultat->processus[0] = processus; 
 
     return resultat;
 }
 
 void maj_jobs(struct Job* jobs, int nbr_jobs) {
-  // printf("kchmaghd ar maj\n");
     bool tous_finis, termine_signal, detache, run_again;
     int termine_stop;
     int i = 0, terminated_count = 0;
@@ -132,37 +126,37 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
         terminated_count = 0;
         detache = false;
         run_again =false ;
-        if ((strcmp(jobs[i].etat, etat_str[4]) != 0) && (strcmp(jobs[i].etat, etat_str[3]) != 0)){ // Le job n'est pas done
+        if ((strcmp(jobs[i].etat, etat_str[4]) != 0) && (strcmp(jobs[i].etat, etat_str[3]) != 0)){ // Le job n'est pas done et n'est pas killed
 
             for (int j = 0; j < jobs[i].nbr_processus; j++) {
-                // On va parcourir les processus
+                // On va parcourir les processus de chaque Job
+
                 pid_t processus = jobs[i].processus[j];
                 pid_t pgid = getpgid(processus);
                 int status;
                 int resultat = waitpid(processus, &status, WNOHANG | WUNTRACED| WCONTINUED);
                 if (resultat == 0) {
-                   // printf("aqli dagi 11111\n");
-                    tous_finis = false;
-                    
-               
-                } else  { // Processus a fini
-                   if (WIFCONTINUED(status)) {
-                                //printf("hello \n");
-                                 if ((strcmp(jobs[i].etat, etat_str[1])==0)){
-                                   
-                                   run_again=true ;
-                                    }
-                            }
+                    //le processus est encours d'execution
 
-                  else if (WIFEXITED(status)) { // Soit done soit detached
-                        terminated_count++;
-                     // printf(" aqli4\n");
-                        // TODO: Vérifier si les processus non lancés du shell ont terminé
-                        
-                        if (pgid == -1) {
-                        perror("getpgid");
-                        exit(EXIT_FAILURE);
+                   tous_finis = false; 
+                    
+                } else  { 
+
+                 // Processus a fini
+                   if (WIFCONTINUED(status)) {
+                    //le processus reprend son execution
+                    if ((strcmp(jobs[i].etat, etat_str[1])==0)){            
+                      run_again=true ;
                         }
+                    } else if (WIFEXITED(status)) { 
+                        //le processus a terminé avec un code de retour
+    
+                        terminated_count++;                        
+                        if (pgid == -1) {
+                            perror("getpgid");
+                            exit(EXIT_FAILURE);
+                        }
+
                         int status2;
                         int resultat2 = waitpid(-pgid, &status2, WNOHANG);
                         if (errno == ECHILD) {
@@ -176,7 +170,7 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                             detache = true;
                         }
 
-                    } else {
+                    }else {
                         // Le processus a été tué par un signal
                        if (WIFSTOPPED(status)) {
                                int recu = WSTOPSIG(status);
@@ -187,16 +181,9 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                                 termine_stop++;
                                 }
                                
-                            }else if (WIFCONTINUED(status)) {
-                                //printf("aqli dagi \n");
-                                 if ((strcmp(jobs[i].etat, etat_str[1])==0)){
-                                   
-                                   run_again=true ;
-                                    }
-                            } else{ //killed
-                            //printf(" aqli6\n");
-                          //  printf("je suis dans KILLED \n");
-                                 termine_signal = true;
+                        } else { //le processus a été tué
+                           
+                               termine_signal = true;
 
                             }
                             
@@ -204,48 +191,45 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                     }
                 
             
+             //on vérifie maintenant quelest l'etat du job 
 
-            if (tous_finis) {
-              //printf("aqli tous fini \n");
-              if (run_again){
-                strcpy(jobs[i].etat, etat_str[0]);
-                jobs[i].affiche=1;
-              }
-              else if (termine_signal) { // killed
-                                    //printf("aqli tous fini aked killed \n");
-                    jobs[i].affiche=1;
-                    strcpy(jobs[i].etat, etat_str[3]);
-                } else if (detache) { // detached
-                                //printf("aqli tous fini  aked detache\n");
+                    if (tous_finis) {
+                    
+                    if (run_again){ 
+                        //running 
+                        strcpy(jobs[i].etat, etat_str[0]);
+                        jobs[i].affiche=1;
+                    }
+                    else if (termine_signal) { 
+                        // killed
+                        jobs[i].affiche=1;
+                        strcpy(jobs[i].etat, etat_str[3]);
 
-                    strcpy(jobs[i].etat, etat_str[2]);
-                }
-                else if ((termine_stop != 0) && (termine_stop == (jobs[i].nbr_processus - terminated_count)) ){ // stopped
-                  // printf("nb pros %d nb tremi %d  %s %d\n",jobs[i].nbr_processus ,terminated_count,jobs[i].command,termine_stop);
-                    strcpy(jobs[i].etat, etat_str[1]);
-                    jobs[i].affiche=1;
-                    jobs[i].avant =0;
-                  // printf("aqli stop");
-                }else
-                {                 // printf("aqli tous fini aked done  \n");
+                        } else if (detache) { 
+                            // detached
+                            strcpy(jobs[i].etat, etat_str[2]);
 
-                    jobs[i].affiche=1;
-                    strcpy(jobs[i].etat, etat_str[4]);
-                } 
-               
-            } else { // !(tous_finis)
-                // running
-               
-               // strcpy(jobs[i].etat, etat_str[0]);
-                //if(run_again)  jobs[i].affiche=1;
-            }
+                        }
+                        else if ((termine_stop != 0) && (termine_stop == (jobs[i].nbr_processus - terminated_count)) ){ 
+                            // stopped
+                            strcpy(jobs[i].etat, etat_str[1]);
+                            jobs[i].affiche=1;
+                            jobs[i].avant =0;
+
+                        }else{                 
+                            //done
+                            jobs[i].affiche=1;
+                            strcpy(jobs[i].etat, etat_str[4]);
+
+                        } 
+                    
+                    } 
             }
         }
-         i++;
-        }
-
-       
+     i++;
     }
+
+}
 
 
 int is_stopped(struct Job* jobs, int nbr_jobs){

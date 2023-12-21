@@ -26,11 +26,12 @@ void extract_args(char *buf, char **args, char **commande, char **buf_tmp, int *
         *buf_tmp = strdup(buf);
 
    }else{
-        for (int j = 0; j < *i; j++)
+        for (int j = 0; args[j] != NULL; j++)
         {
                 free(args[j]);
-                args[j] =NULL;
+               args[j] =NULL;
         }
+        
         
         
     }

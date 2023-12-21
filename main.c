@@ -13,7 +13,6 @@
 #include "arriere_plan.h"
 #include "utils.h"
 #include "redirections.h"
-// #define NBR_MAX_ARGUMENTS 20
 
 int main()
 {
@@ -37,18 +36,17 @@ int main()
     int error_in_redirections = 0; // Pour verifier si erreur dans les fichiers de redirections
     struct Job *new_job;
     getcwd(rep_precedent, sizeof(char) * PATH_MAX);
-    //int lyes;
 
     int stdin_copy = dup(STDIN_FILENO);
     int stdout_copy = dup(STDOUT_FILENO);
     int stderr_copy = dup(STDERR_FILENO);
 
     while (1)
-    { // faut faire ici une maj du tableau des jobs
-        maj_jobs(tab_jobs, nb_job);
-        // jobs(tab_jobs,nb_job);
+    { 
+        // mise à jour des jobs 
 
-        // printf("1\n");
+        maj_jobs(tab_jobs, nb_job);
+
         // Afficher le prompt et lire la commande de l'utilisateur
         affiche = afficher_prompt(nb_jobs_encours(tab_jobs, nb_job));
         buf = readline(affiche);
@@ -82,7 +80,6 @@ int main()
                     else
                     {
                         index = commandline_is_redirection(buf_tmp);
-                        // printf("redirection %s\n", redirection);
                         error_in_redirections = 0;
                         if (index != -1)
                         {
@@ -90,7 +87,6 @@ int main()
                             if (error_in_redirections == 0)
                             {
                                 error_in_redirections = execute_redirections(redirections, nb_redirections);
-                                // printf("error_in_execute_redirections %d\n", error_in_redirections);
                                 code_retour = error_in_redirections;
                                 buf_tmp = extractCommandAndArgs(buf_tmp, index);
 
@@ -102,7 +98,6 @@ int main()
                             perror("Erreur lors de la redirection\n");
                             code_retour = 1;
                         }
-                        // printf("error_in_redirections %d\n", error_in_redirections);
                         else //(error_in_redirections == 0)
                         {
                             if (strcmp(commande, "pwd") == 0)
@@ -160,10 +155,8 @@ int main()
                                 else
                                 {
 
-                                    //  jobs(tab_jobs, nb_job);
                                     maj_jobs(tab_jobs, nb_job);
                                     maj_jobs(tab_jobs, nb_job);
-                                    // jobs(tab_jobs,nb_job);
                                 }
                             }
                             else if (strcmp(commande, "exit") == 0)
@@ -182,13 +175,7 @@ int main()
                                 }
                                 else
                                 {
-
-                                    if (args[1] != NULL)
-                                        code_retour = atoi(args[1]);
-
-                                  //  free(rep_precedent);
-                                   // free(buf_tmp);
-                                   // free(buf);
+                                    if (args[1] != NULL) code_retour = atoi(args[1]);
                                     exit(code_retour);
                                 }
                             }
@@ -212,7 +199,6 @@ int main()
                                     break;
                                 default:
                                     // Code du processus parent : attendre que le processus fils se termine
-                                    //sleep(1);
                                  
                                   do{
                                     waitpid(pid, &status, WUNTRACED| WCONTINUED);
@@ -230,39 +216,8 @@ int main()
                                          free(new_job);
                                          nb_job++;
                                          }
-                                        } 
-                                    // Gérer le processus fils arrêté
-                            
-                                   // if(WEXITSTATUS(status)){//il a terminé jalon 1
-                                    /*  code_retour = WEXITSTATUS(status);
-                                      
-                                  //  }
-                                    if (WSTOPSIG(status) != 0)
-                                    {
-                                     // code_retour = WEXITSTATUS(status);
-                                      int recu = WSTOPSIG(status);
-                                      //printf("recu %d \n",recu);
-                                      // printf("recu %d \n",recu);
-                                        if (recu == 19 || recu == 20) {
-                                       new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
-
-                                         strcpy(new_job->etat, etat_str[1]);
-                                         new_job->affiche=1;
-                                         new_job->avant =0;
-                                         tab_jobs[nb_job] = *new_job;
-                                         free(new_job);
-                                         
-                                         nb_job++;
-                                         //jobs_err(tab_jobs, nb_job);
-                                         //printf("lyesss : %s  %s code de retour %d\n", tab_jobs[nb_job-1].command,tab_jobs[nb_job-1].etat,code_retour);
-                                        }
-
-                                    }else{
-                                        maj_jobs(tab_jobs, nb_job);
-                                    }*/
-                                    
-                                   // jobs_err(tab_jobs, nb_job);
-                                    //jobs(tab_jobs,nb_job);
+                                        }                             
+                
                                     code_retour = WEXITSTATUS(status);
                                     break;
                                 }
@@ -271,31 +226,21 @@ int main()
 
                          maj_jobs(tab_jobs, nb_job);
                          jobs_err(tab_jobs, nb_job);
-                         //jobs(tab_jobs, nb_job);
                          
-                         
-                        // jobs_err(tab_jobs, nb_job);
-                       
-                       // jobs(tab_jobs,nb_job);
-                        // jobs(tab_jobs, nb_job);
+                     
                     }
                 }
 
                 // Libérer la mémoire allouée pour les arguments
-               //free(rep_precedent);
-               //rep_precedent=NULL;
                 for (int j = 0; j < i; j++)
                 {
                     free(args[j]);
                 }
-              // free(buf_tmp);
-              // buf_tmp=NULL;
+              
             }
             // Libérer la mémoire allouée pour la commande
             free(buf);
-            //free(buf_tmp);
-            //buf_tmp=NULL;
-            
+           
              
         }
         
@@ -306,6 +251,8 @@ int main()
 
     // Libérer la mémoire allouée pour le répertoire précédent
      free(*rep_precedent);
+     free(buf_tmp);
+     free(args);
     for (int i = 0; i < nb_job; i++)
     {
         liberer_job(&tab_jobs[i]);
