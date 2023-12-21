@@ -35,8 +35,9 @@ int modifie_args(char **args, int nb_args,char **chaine){
       enlever_dernier_caractere(args[0]);
     }
     else{
-        if (strlen(args[nb_args-1])==1)
+        if (strcmp(args[nb_args-1],"&")==0) 
         {
+            free(args[nb_args-1]);
             args[nb_args-1]=NULL;
             nb_args = nb_args -1;
         }else{
@@ -51,14 +52,14 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_arg
   int r = fork();
   if (r == -1) {
     perror("fork");
-    exit(1);
+    exit(0);
   }
   
   switch (r){
     case 0:
     
    
-    setpgid(0,0);
+    setpgid(getpid(),getpid());
     //jobs(tab_jobs, nombre_jobs);
     execvp(args[0],args);
     perror("Erreur lors de l'exécution de la commande");
@@ -84,7 +85,7 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[],int nb_arg
     tab_jobs[nombre_jobs]= *job;
     free(job);
     fprintf(stderr,"[%d]\t%d\tRunning\t%s\n",tab_jobs[nombre_jobs].numero_job + 1,tab_jobs[nombre_jobs].processus[0], tab_jobs[nombre_jobs].command);
-    return 1;
+    return 0;
     break;
   }
 

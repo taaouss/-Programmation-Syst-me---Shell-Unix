@@ -29,7 +29,7 @@ int main()
     char *args[NBR_MAX_ARGUMENTS];
     size_t len;
     int pid, nb_job = 0;
-    char *rep_precedent = malloc(sizeof(char) * PATH_MAX);
+    char rep_precedent[100] ;
     int i = 0;
     int index = -1;
     Redirection *redirections = NULL;
@@ -37,7 +37,7 @@ int main()
     int error_in_redirections = 0; // Pour verifier si erreur dans les fichiers de redirections
     struct Job *new_job;
     getcwd(rep_precedent, sizeof(char) * PATH_MAX);
-    int lyes;
+    //int lyes;
 
     int stdin_copy = dup(STDIN_FILENO);
     int stdout_copy = dup(STDOUT_FILENO);
@@ -68,7 +68,7 @@ int main()
                 // Extraire la commande et les arguments
                 
                 extract_args(buf, args, &commande, &buf_tmp, &i, len);
-                lyes=i;
+    
 
                 if (commande != NULL)
                 {
@@ -92,9 +92,8 @@ int main()
                                 error_in_redirections = execute_redirections(redirections, nb_redirections);
                                 // printf("error_in_execute_redirections %d\n", error_in_redirections);
                                 code_retour = error_in_redirections;
-                                
                                 buf_tmp = extractCommandAndArgs(buf_tmp, index);
-                                
+
                                 extract_args(buf_tmp, args, &commande, &buf_tmp, &i, strlen(buf_tmp));
                             }
                         }
@@ -124,7 +123,7 @@ int main()
                             }
                             else if (strcmp(commande, "jobs") == 0)
                             {
-                                maj_jobs(tab_jobs, nb_job);
+                                 maj_jobs(tab_jobs, nb_job);
                                 if ((code_retour = jobs(tab_jobs, nb_job)) == 1)
                                     perror("Erreur lors de la commande JOBS");
                             }
@@ -168,7 +167,9 @@ int main()
                                 }
                             }
                             else if (strcmp(commande, "exit") == 0)
-                            {
+                            {   
+                               
+
                                 // Sortir du programme avec un code de retour optionnel
 
                                 if (is_stopped(tab_jobs, nb_job) || is_running(tab_jobs, nb_job))
@@ -185,9 +186,9 @@ int main()
                                     if (args[1] != NULL)
                                         code_retour = atoi(args[1]);
 
-                                    free(rep_precedent);
-                                    free(buf_tmp);
-                                    free(buf);
+                                  //  free(rep_precedent);
+                                   // free(buf_tmp);
+                                   // free(buf);
                                     exit(code_retour);
                                 }
                             }
@@ -204,41 +205,91 @@ int main()
                                     break;
                                 case 0:
                                     // Code du processus fils : exécuter la commande externe
+                                    setpgid(getpid(),getpid());
                                     execvp(commande, args);
                                     perror("Erreur lors de l'exécution de la commande");
                                     exit(3); // Valeur de sortie arbitraire en cas d'erreur
                                     break;
                                 default:
                                     // Code du processus parent : attendre que le processus fils se termine
-                                    new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
-                                    tab_jobs[nb_job] = *new_job;
-                                    free(new_job);
-                                    nb_job++;
-                                    waitpid(pid, &status, 0);
+                                    //sleep(1);
+                                 
+                                  do{
+                                    waitpid(pid, &status, WUNTRACED| WCONTINUED);
+                                    }while(!(WIFEXITED(status)) && !(WIFSIGNALED(status)) && !(WIFSTOPPED(status)) && !(WIFCONTINUED(status))) ;
+                                    
+                                     if (WIFSTOPPED(status)) {
+                                        int recu = WSTOPSIG(status);
+                                        if (recu == 19 || recu == 20) {
+
+                                         new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
+                                         strcpy(new_job->etat, etat_str[1]);
+                                         new_job->affiche=1;
+                                         new_job->avant =0;
+                                         tab_jobs[nb_job] = *new_job;
+                                         free(new_job);
+                                         nb_job++;
+                                         }
+                                        } 
+                                    // Gérer le processus fils arrêté
+                            
+                                   // if(WEXITSTATUS(status)){//il a terminé jalon 1
+                                    /*  code_retour = WEXITSTATUS(status);
+                                      
+                                  //  }
+                                    if (WSTOPSIG(status) != 0)
+                                    {
+                                     // code_retour = WEXITSTATUS(status);
+                                      int recu = WSTOPSIG(status);
+                                      //printf("recu %d \n",recu);
+                                      // printf("recu %d \n",recu);
+                                        if (recu == 19 || recu == 20) {
+                                       new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
+
+                                         strcpy(new_job->etat, etat_str[1]);
+                                         new_job->affiche=1;
+                                         new_job->avant =0;
+                                         tab_jobs[nb_job] = *new_job;
+                                         free(new_job);
+                                         
+                                         nb_job++;
+                                         //jobs_err(tab_jobs, nb_job);
+                                         //printf("lyesss : %s  %s code de retour %d\n", tab_jobs[nb_job-1].command,tab_jobs[nb_job-1].etat,code_retour);
+                                        }
+
+                                    }else{
+                                        maj_jobs(tab_jobs, nb_job);
+                                    }*/
+                                    
+                                   // jobs_err(tab_jobs, nb_job);
+                                    //jobs(tab_jobs,nb_job);
                                     code_retour = WEXITSTATUS(status);
-                                    maj_jobs(tab_jobs, nb_job);
-  printf("lyesss : %s  %s code de retour %d\n", tab_jobs[nb_job-1].command,tab_jobs[nb_job-1].etat,code_retour);
-                                    tab_jobs[nb_job-1].affiche=1;
-                                    jobs(tab_jobs, nb_job);
                                     break;
                                 }
                             }
                         }
 
-                        maj_jobs(tab_jobs, nb_job);
-                        jobs_err(tab_jobs, nb_job);
+                         maj_jobs(tab_jobs, nb_job);
+                         jobs_err(tab_jobs, nb_job);
+                         //jobs(tab_jobs, nb_job);
+                         
+                         
+                        // jobs_err(tab_jobs, nb_job);
+                       
+                       // jobs(tab_jobs,nb_job);
                         // jobs(tab_jobs, nb_job);
                     }
                 }
 
                 // Libérer la mémoire allouée pour les arguments
-                
-                for (int j = 0; j < lyes; j++)
+               //free(rep_precedent);
+               //rep_precedent=NULL;
+                for (int j = 0; j < i; j++)
                 {
                     free(args[j]);
                 }
-               free(buf_tmp);
-               buf_tmp=NULL;
+              // free(buf_tmp);
+              // buf_tmp=NULL;
             }
             // Libérer la mémoire allouée pour la commande
             free(buf);
@@ -248,11 +299,13 @@ int main()
              
         }
         
+
+
         reset_redirections(stdin_copy, stdout_copy, stderr_copy);
     }
 
     // Libérer la mémoire allouée pour le répertoire précédent
-    free(rep_precedent);
+     free(*rep_precedent);
     for (int i = 0; i < nb_job; i++)
     {
         liberer_job(&tab_jobs[i]);

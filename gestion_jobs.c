@@ -1,4 +1,5 @@
 #include <linux/limits.h>
+#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,6 +8,7 @@
 #include <stdbool.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <signal.h>
 
 const char *etat_str[] = { "RUNNING", "STOPPED", "DETACHED", "KILLED", "DONE"};
 
@@ -30,12 +32,13 @@ int jobs(struct Job* jobs, int nbr_jobs) {
                 else if (strcmp(jobs[i].etat,"DETACHED")==0) strcpy(etat,"Detached");
                 else if (strcmp(jobs[i].etat,"KILLED")==0) strcpy(etat,"Killed");
 
-
-                printf("[%d]\t%d\t%s\t%s\n", jobs[i].numero_job + 1, jobs[i].processus[0], etat,jobs[i].command);
-                if ( jobs[i].affiche == 1)
+               if (strcmp(jobs[i].etat,etat_str[4])==0 && (jobs[i].affiche==0)){}
+               else{                printf("[%d]\t%d\t%s\t%s\n", jobs[i].numero_job + 1, jobs[i].processus[0], etat,jobs[i].command);
+ if ( jobs[i].affiche == 1)
                 {
                     jobs[i].affiche = 0;
-                }
+                }}
+               
                 
             }
   
@@ -117,38 +120,43 @@ struct Job* creer_jobs(int nombre_jobs, pid_t processus, char* commande, int ava
 
 void maj_jobs(struct Job* jobs, int nbr_jobs) {
   // printf("kchmaghd ar maj\n");
-    bool tous_finis, termine_signal, detache;
+    bool tous_finis, termine_signal, detache, run_again;
     int termine_stop;
     int i = 0, terminated_count = 0;
     if (jobs == NULL) return;
    
     while (i < nbr_jobs) {
-        //printf("nbr de job : %d  et le i / %d \n",nbr_jobs,i);
         tous_finis = true;
         termine_signal = false;
         termine_stop = 0;
         terminated_count = 0;
         detache = false;
-      // printf(" aqli1\n");
+        run_again =false ;
         if ((strcmp(jobs[i].etat, etat_str[4]) != 0) && (strcmp(jobs[i].etat, etat_str[3]) != 0)){ // Le job n'est pas done
 
             for (int j = 0; j < jobs[i].nbr_processus; j++) {
-              // printf(" aqli2\n");
-               // printf("lyes2sshs %s \n",jobs[i].command);
                 // On va parcourir les processus
                 pid_t processus = jobs[i].processus[j];
                 pid_t pgid = getpgid(processus);
                 int status;
-                int resultat = waitpid(processus, &status, WNOHANG | WUNTRACED);
+                int resultat = waitpid(processus, &status, WNOHANG | WUNTRACED| WCONTINUED);
                 if (resultat == 0) {
-                    // Le processus n'a pas encore terminé
-                   //printf(" aqli3\n");
+                   // printf("aqli dagi 11111\n");
                     tous_finis = false;
+                    
+               
+                } else  { // Processus a fini
+                   if (WIFCONTINUED(status)) {
+                                //printf("hello \n");
+                                 if ((strcmp(jobs[i].etat, etat_str[1])==0)){
+                                   
+                                   run_again=true ;
+                                    }
+                            }
 
-                } else if (resultat > 0) { // Processus a fini
-                   if (WIFEXITED(status)) { // Soit done soit detached
+                  else if (WIFEXITED(status)) { // Soit done soit detached
                         terminated_count++;
-                      //printf(" aqli4\n");
+                     // printf(" aqli4\n");
                         // TODO: Vérifier si les processus non lancés du shell ont terminé
                         
                         if (pgid == -1) {
@@ -171,16 +179,21 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                     } else {
                         // Le processus a été tué par un signal
                        if (WIFSTOPPED(status)) {
-                        // if  (WIFSIGNALED(status))  { 
                                int recu = WSTOPSIG(status);
                               // int recu = WTERMSIG(status);
-                            //   printf("recu :%d \n",recu);
+                              //printf("recu :%d \n",recu);
                                 if (recu == 19 || recu == 20) {
                                    //printf(" aqli5\n");
                                 termine_stop++;
                                 }
-
-                            }else { //killed
+                               
+                            }else if (WIFCONTINUED(status)) {
+                                //printf("aqli dagi \n");
+                                 if ((strcmp(jobs[i].etat, etat_str[1])==0)){
+                                   
+                                   run_again=true ;
+                                    }
+                            } else{ //killed
                             //printf(" aqli6\n");
                           //  printf("je suis dans KILLED \n");
                                  termine_signal = true;
@@ -189,12 +202,16 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                             
                         }
                     }
-                }
+                
             
 
             if (tous_finis) {
               //printf("aqli tous fini \n");
-                if (termine_signal) { // killed
+              if (run_again){
+                strcpy(jobs[i].etat, etat_str[0]);
+                jobs[i].affiche=1;
+              }
+              else if (termine_signal) { // killed
                                     //printf("aqli tous fini aked killed \n");
                     jobs[i].affiche=1;
                     strcpy(jobs[i].etat, etat_str[3]);
@@ -218,7 +235,10 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                
             } else { // !(tous_finis)
                 // running
-                strcpy(jobs[i].etat, etat_str[0]);
+               
+               // strcpy(jobs[i].etat, etat_str[0]);
+                //if(run_again)  jobs[i].affiche=1;
+            }
             }
         }
          i++;

@@ -253,7 +253,7 @@ char *extractCommandAndArgs(const char *commandLine, int index)
             return NULL;
         }
     }
-
+    free(commandLine);
     return result;
 }
 
