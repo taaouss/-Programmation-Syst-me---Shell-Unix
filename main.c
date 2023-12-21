@@ -55,13 +55,7 @@ int main()
         // Vérifier si la commande est NULL (par exemple, fin de fichier)
         if (buf == NULL || feof(stdin))
         {   
-             //free(buf);
-             free(buf_tmp);
-            //free(rep_precedent);
-             for (int i = 0; i < nb_job; i++)
-            {
-                liberer_job(&tab_jobs[i]);
-            }
+            free(buf_tmp);
             return (code_retour);
         }
         else
