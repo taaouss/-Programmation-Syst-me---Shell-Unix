@@ -19,7 +19,7 @@ int avec_ecrasement_stdin(char *fic);
 int token_is_redirection(char *token);
 int commandline_is_redirection(char *commandline);
 void extract_redirections(char *commandline, Redirection **redirections, int *erreur, int *nb_redirections);
-char *extractCommandAndArgs(const char *commandLine, int index);
+char *extractCommandAndArgs(char *commandLine, int index);
 void free_redirections(Redirection *redirections, int nb_redirections);
 int execute_redirection(char *redirection, char *redirectionFileName);
 void reset_redirections(int stdin_copy, int stdout_copy, int stderr_copy);
