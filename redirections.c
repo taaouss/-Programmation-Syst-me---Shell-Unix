@@ -224,7 +224,7 @@ void extract_redirections(char *commandline, Redirection **redirections, int *er
 }
 
 // Fonction pour extraire la commande et les arguments
-char *extractCommandAndArgs(const char *commandLine, int index)
+char *extractCommandAndArgs(char *commandLine, int index)
 {
     char *result = NULL;
 
