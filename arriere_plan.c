@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include "signaux.h"
 
 
 int is_cmdArrierePlan(char **args,int nb_args) {
@@ -59,7 +60,9 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[], size_t le
   switch (r){
     
     case 0:
+       
         setpgid(getpid(),getpid());
+         reset_signaux_groupe(getpid());
         execvp(args[0],args);
         perror("Erreur lors de l'exécution de la commande");
         exit(1); // Valeur de sortie arbitraire en cas d'erreur

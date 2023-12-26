@@ -19,8 +19,7 @@ void extract_args(char *buf, char **args, char **commande, char **buf_tmp, int *
 
    if (buf != *buf_tmp)
     {
-     free(*buf_tmp);
-    
+     free(*buf_tmp); 
      *buf_tmp = strdup(buf);
    }else{
     

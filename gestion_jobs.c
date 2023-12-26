@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <signal.h>
+#include "signaux.h"
 
 const char *etat_str[] = { "RUNNING", "STOPPED", "DETACHED", "KILLED", "DONE"};
 
@@ -23,7 +24,7 @@ int jobs(struct Job* jobs, int nbr_jobs) {
              
                 
 
-            if ((strcmp(jobs[i].etat,etat_str[3])!=0)&& (jobs[i].avant == 0)) {
+            if ((strcmp(jobs[i].etat,etat_str[3])!=0)&& (jobs[i].avant == 1)) {
                 
                 strcpy(etat,jobs[i].etat);
                 if (strcmp(jobs[i].etat,"DONE")==0) strcpy(etat,"Done");
@@ -48,12 +49,13 @@ int jobs(struct Job* jobs, int nbr_jobs) {
     }
     return 0;
 }
+
 int jobs_err(struct Job* jobs, int nbr_jobs) {
     int i = 0;
     if (jobs == NULL) return 1;
 
     while (i < nbr_jobs) {
-        if ((jobs[nbr_jobs-i-1].affiche == 1)&&(jobs[nbr_jobs-i-1].avant == 0))
+        if ((jobs[nbr_jobs-i-1].affiche == 1)&&(jobs[nbr_jobs-i-1].avant == 1))
         {
             
         
@@ -79,6 +81,7 @@ int jobs_err(struct Job* jobs, int nbr_jobs) {
     }
     return 0;
 }
+
 int nb_jobs_encours(struct Job* jobs, int nbr_jobs) {
     int i = 0;
     if (jobs == NULL) return 0;
@@ -214,7 +217,7 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                             // stopped
                             strcpy(jobs[i].etat, etat_str[1]);
                             jobs[i].affiche=1;
-                            jobs[i].avant =0;
+                            jobs[i].avant =1;
 
                         }else{                 
                             //done
@@ -230,7 +233,6 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
     }
 
 }
-
 
 int is_stopped(struct Job* jobs, int nbr_jobs){
    int i =0;
@@ -256,4 +258,5 @@ int is_running(struct Job* jobs, int nbr_jobs){
 void liberer_job(struct Job* job) {
     free(job);
 }
+
 

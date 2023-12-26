@@ -7,6 +7,10 @@
 #include <signal.h>
 #include "commandes_internes.h"
 #include "gestion_jobs.h"
+#include "signaux.h"
+#include <sys/types.h>
+#include <sys/wait.h>
+
 
 // Fonction pour afficher le répertoire de travail actuel 
 int pwd()
@@ -119,9 +123,7 @@ int kill_commande(char **argument, int nbr_arguments, struct Job *jobs, int nbr_
         memmove(resultat, resultat + 1, strlen(resultat));
         int num = atoi(resultat);
         if (num > 0 && (num - 1) <= nbr_jobs) { 
-
             if (strcmp(jobs[num - 1].etat, etat_str[4]) != 0) {
-                
                 for (int j = 0; j < jobs[num - 1].nbr_processus; j++) {
 
                    int result= kill(-jobs[num - 1].processus[j], signal);
@@ -146,6 +148,46 @@ int kill_commande(char **argument, int nbr_arguments, struct Job *jobs, int nbr_
     return 0;
 }
 
+int fg_commande(struct Job* jobs, int nbr_jobs, char* arg){
+
+    //extraction de l'argument
+    char *resultat = strstr(arg , "%");
+    memmove(resultat, resultat + 1, strlen(resultat));
+    int job_number= atoi(resultat);
+
+    //verifier si job_number est correct
+    if(job_number < 0 || job_number > nbr_jobs){
+
+        fprintf(stderr, "Numéro de job invalide\n");
+        return 1;
+    }
+
+    //choisir le job dans le tableau 
+    struct Job* job_fg = &jobs[job_number - 1];
+    
+    //verifier si le job est en arriere plan 
+
+    if (job_fg->avant == 1)  {
+        
+        fprintf(stderr, "Le job est en avant plan deja \n");
+         return 0; 
+    }
+     //le job doit etre running 
+     if (strcmp(job_fg->etat, etat_str[0]) != 0) {
+        fprintf(stderr, "Le job n'est pas en cours d'exécution\n");
+        return 1 ;
+    }
+
+    //ramener un job en avant plan
+    tcsetpgrp(STDIN_FILENO, getpgid(job_fg->processus[0]));
+
+    waitpid(job_fg->processus[0], NULL, WUNTRACED | WCONTINUED);
+
+    // Restaurer le contrôle au shell JSH
+    tcsetpgrp(STDIN_FILENO, getpgrp());
+
+    return 0;
+}
 
 
 

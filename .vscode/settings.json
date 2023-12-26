@@ -2,6 +2,7 @@
     "C_Cpp.errorSquiggles": "disabled",
     "files.associations": {
         "history.h": "c",
-        "commandes_internes.h": "c"
+        "commandes_internes.h": "c",
+        "signaux.h": "c"
     }
 }
