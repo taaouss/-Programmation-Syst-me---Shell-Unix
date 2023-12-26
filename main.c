@@ -193,8 +193,6 @@ int main()
                             {
                              // Créer un nouveau processus pour exécuter la commande externe
                              
-                               // reset_signaux_groupe(getpgrp()); 
-
                                 pid = fork();
 
                                 switch (pid)
@@ -204,22 +202,21 @@ int main()
                                     break;
                                 case 0:
                                     // Code du processus fils : exécuter la commande externe
-                                    setpgid(getpid(),getpid());
+                                    setpgid(getpid(), getpid());  // Mettre le processus fils dans un nouveau groupe de processus
+                                    reset_signaux_groupe(getpid());
                                     execvp(commande, args);
                                     perror("Erreur lors de l'exécution de la commande");
                                     exit(3); // Valeur de sortie arbitraire en cas d'erreur
                                     break;
                                 default:
                                     // Code du processus parent : attendre que le processus fils se termine
-                                    //set_signaux();
+                                    tcsetpgrp(STDIN_FILENO, pid);                                 
                                   do{
-                                    waitpid(pid, &status, WUNTRACED| WCONTINUED);
+                                     waitpid(pid, &status, WUNTRACED| WCONTINUED);
                                     }while(!(WIFEXITED(status)) && !(WIFSIGNALED(status)) && !(WIFSTOPPED(status)) && !(WIFCONTINUED(status))) ;
-                                    
+                                      
                                      // Restaurer le contrôle au shell JSH
                                      tcsetpgrp(STDIN_FILENO, getpgrp());  
-                                    
-                                    // fprintf(stderr,"hi fin  \n");
 
                                      if (WIFSTOPPED(status)) {
                                      

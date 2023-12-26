@@ -166,7 +166,6 @@ int fg_commande(struct Job* jobs, int nbr_jobs, char* arg){
     struct Job* job_fg = &jobs[job_number - 1];
     
     //verifier si le job est en arriere plan 
-
     if (job_fg->avant == 1)  {
         
         fprintf(stderr, "Le job est en avant plan deja \n");
@@ -189,7 +188,39 @@ int fg_commande(struct Job* jobs, int nbr_jobs, char* arg){
     return 0;
 }
 
+ int bg_commande(struct Job* jobs, int nbr_jobs, char* arg){
+      
+    //extraction de l'argument
+    char *resultat = strstr(arg , "%");
+    memmove(resultat, resultat + 1, strlen(resultat));
+    int job_number= atoi(resultat);
 
+    //verifier si job_number est correct
+    if(job_number < 0 || job_number > nbr_jobs){
+
+        fprintf(stderr, "Numéro de job invalide\n");
+        return 1;
+    }
+
+    //choisir le job dans le tableau 
+    struct Job* job_fg = &jobs[job_number - 1];
+
+    //verifier si le job a été lancé en avant plan 
+
+    if (job_fg->avant == 0)  {
+        
+        fprintf(stderr, "Le job est en avant plan deja \n");
+         return 0; 
+    }
+     //le job doit etre stopped
+     if (strcmp(job_fg->etat, etat_str[1]) != 0) {
+        fprintf(stderr, "Le job n'est pas stoopé \n");
+        return 1 ;
+    }
+   
+    // lancer le job en arriere plan 
+
+}
 
 
 
