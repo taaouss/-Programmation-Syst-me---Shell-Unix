@@ -13,11 +13,15 @@
 #include "arriere_plan.h"
 #include "utils.h"
 #include "redirections.h"
+#include "signaux.h"
 
 int main()
 {
+   //ignorer les signaux par JSH 
+    set_signaux();
 
     // Nettoyer le terminal
+ 
     system("clear");
 
     // Rediriger la sortie de readline vers stderr
@@ -180,9 +184,16 @@ int main()
                                     exit(code_retour);
                                 }
                             }
+                            else if (strcmp(commande, "fg") == 0) 
+                            {
+                               if ((code_retour =  fg_commande(tab_jobs, nb_job, args[1])) != 0)
+                               perror("Erreur lors de la commande fg");
+                            }
                             else
                             {
-                                // Créer un nouveau processus pour exécuter la commande externe
+                             // Créer un nouveau processus pour exécuter la commande externe
+                             
+                               // reset_signaux_groupe(getpgrp()); 
 
                                 pid = fork();
 
@@ -200,22 +211,29 @@ int main()
                                     break;
                                 default:
                                     // Code du processus parent : attendre que le processus fils se termine
-                                 
+                                    //set_signaux();
                                   do{
                                     waitpid(pid, &status, WUNTRACED| WCONTINUED);
                                     }while(!(WIFEXITED(status)) && !(WIFSIGNALED(status)) && !(WIFSTOPPED(status)) && !(WIFCONTINUED(status))) ;
                                     
+                                     // Restaurer le contrôle au shell JSH
+                                     tcsetpgrp(STDIN_FILENO, getpgrp());  
+                                    
+                                    // fprintf(stderr,"hi fin  \n");
+
                                      if (WIFSTOPPED(status)) {
+                                     
                                         int recu = WSTOPSIG(status);
                                         if (recu == 19 || recu == 20) {
 
-                                         new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
-                                         strcpy(new_job->etat, etat_str[1]);
-                                         new_job->affiche=1;
-                                         new_job->avant =0;
-                                         tab_jobs[nb_job] = *new_job;
-                                         free(new_job);
-                                         nb_job++;
+                                            new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
+                                            strcpy(new_job->etat, etat_str[1]);
+                                            new_job->affiche=1;
+                                            new_job->avant =1;
+                                            tab_jobs[nb_job] = *new_job;
+                                            free(new_job);
+                                            nb_job++;
+                                         
                                          }
                                         }                             
                 
