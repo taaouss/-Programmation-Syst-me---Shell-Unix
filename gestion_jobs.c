@@ -24,7 +24,7 @@ int jobs(struct Job* jobs, int nbr_jobs) {
              
                 
 
-            if ((strcmp(jobs[i].etat,etat_str[3])!=0)&& (jobs[i].avant == 1)) {
+            if ((strcmp(jobs[i].etat,etat_str[3])!=0)) {
                 
                 strcpy(etat,jobs[i].etat);
                 if (strcmp(jobs[i].etat,"DONE")==0) strcpy(etat,"Done");
@@ -55,7 +55,7 @@ int jobs_err(struct Job* jobs, int nbr_jobs) {
     if (jobs == NULL) return 1;
 
     while (i < nbr_jobs) {
-        if ((jobs[nbr_jobs-i-1].affiche == 1)&&(jobs[nbr_jobs-i-1].avant == 1))
+        if ((jobs[nbr_jobs-i-1].affiche == 1))
         {
             
         

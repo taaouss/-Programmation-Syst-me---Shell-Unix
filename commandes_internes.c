@@ -188,7 +188,7 @@ int fg_commande(struct Job* jobs, int nbr_jobs, char* arg){
     return 0;
 }
 
- int bg_commande(struct Job* jobs, int nbr_jobs, char* arg){
+ /*int bg_commande(struct Job* jobs, int nbr_jobs, char* arg){
       
     //extraction de l'argument
     char *resultat = strstr(arg , "%");
@@ -220,7 +220,7 @@ int fg_commande(struct Job* jobs, int nbr_jobs, char* arg){
    
     // lancer le job en arriere plan 
 
-}
+}*/
 
 
 
