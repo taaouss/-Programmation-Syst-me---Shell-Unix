@@ -12,6 +12,6 @@ int kill_commande(char **argument, int nbr_arguments, struct Job *jobs, int nbr_
 
 int fg_commande(struct Job* jobs, int nbr_jobs, char* arg);
 
-int bg_commande(struct Job* jobs, int nbr_jobs, char* arg);
+//int bg_commande(struct Job* jobs, int nbr_jobs, char* arg);
 
 #endif
