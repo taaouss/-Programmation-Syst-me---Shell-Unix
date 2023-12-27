@@ -1,13 +1,15 @@
 #ifndef REDIRECTIONS_H
 #define REDIRECTIONS_H
 
-extern int exit_code;
+// extern int exit_code;
 
 typedef struct
 {
     char *redirection;
     char *redirectionFileName;
 } Redirection;
+
+#define MAX_SUBCOMMANDS 10
 
 int lecture(char *fic);
 int sans_ecrasement_stdout(char *fic);
@@ -24,5 +26,7 @@ void free_redirections(Redirection *redirections, int nb_redirections);
 int execute_redirection(char *redirection, char *redirectionFileName);
 void reset_redirections(int stdin_copy, int stdout_copy, int stderr_copy);
 int execute_redirections(Redirection *redirections, int nb_redirections);
+int commandline_is_pipe(char *commandline);
+void extract_pipe_commands(char *commandline, char *commands[], int *nb_commands);
 
 #endif
