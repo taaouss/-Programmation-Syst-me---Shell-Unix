@@ -8,6 +8,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include "redirections.h"
+#include "gestion_jobs.h"
 
 const char mes_symboles[7][4] = {"<", "2>>", ">>", "2>|", "2>", ">|", ">"};
 
@@ -151,7 +152,6 @@ void extract_redirections(char *commandline, Redirection **redirections, int *er
     char *file_name;
     char *commandline_tmp = strdup(commandline);
     char *token = strtok(commandline_tmp, " ");
-    // int i = 0;
     *erreur = 0;
     *nb_redirections = 0;
     int capacity = 10;
@@ -161,7 +161,6 @@ void extract_redirections(char *commandline, Redirection **redirections, int *er
     if (!*redirections)
     {
         *erreur = 1;
-        
         return;
     }
 
@@ -246,8 +245,7 @@ char *extractCommandAndArgs(char *commandLine, int index)
     else
     {
         // Si pas de redirection, copier toute la ligne de commande
-       result = strdup(commandLine);
-       // result = (char *)malloc(strlen(commandLine) + 1);
+        result = strdup(commandLine);
         if (result == NULL)
         {
             // Gestion de l'erreur d'allocation
@@ -255,7 +253,7 @@ char *extractCommandAndArgs(char *commandLine, int index)
             return NULL;
         }
     }
- free(commandLine);
+    free(commandLine);
     return result;
 }
 
@@ -319,9 +317,6 @@ int execute_redirections(Redirection *redirections, int nb_redirections)
         code_retour = execute_redirection(redirections[i].redirection, redirections[i].redirectionFileName);
         if (code_retour != 0)
         {
-            // printf("Erreur in\n");
-            // printf("redirection: %s, file: %s\n", redirections[i].redirection, redirections[i].redirectionFileName);
-            // printf("code retour: %d\n", code_retour);
             reset_redirections(stdin_copy, stdout_copy, stderr_copy);
             free_redirections(redirections, nb_redirections);
             return code_retour;
@@ -337,4 +332,106 @@ void reset_redirections(int stdin_copy, int stdout_copy, int stderr_copy)
     dup2(stdin_copy, 0);
     dup2(stdout_copy, 1);
     dup2(stderr_copy, 2);
+}
+
+int commandline_is_pipe(char *commandline)
+{
+    // Verifie si la ligne de commande contient un pipe
+
+    char *commandline_tmp = strdup(commandline);
+    char *token = strtok(commandline_tmp, " ");
+    int code_retour = 0;
+
+    while (token != NULL)
+    {
+        if (strcmp(token, "|") == 0)
+        {
+            if ((token = strtok(NULL, " ")) == NULL || strcmp(token, "|") == 0)
+            {
+                free(commandline_tmp);
+                return 0;
+            }
+            code_retour = 1;
+        }
+        else
+        {
+            token = strtok(NULL, " ");
+        }
+    }
+    free(commandline_tmp);
+    return code_retour;
+}
+
+void extract_pipe_commands(char *commandline, char *commands[], int *nb_commands)
+{
+
+    char *commandline_tmp = strdup(commandline);
+    char *token, *reste = commandline_tmp;
+    int i = 0;
+
+    while ((token = strstr(reste, " | ")) != NULL && i < NBR_MAX_PROCESSUS)
+    {
+        *token = '\0'; // Remplacer "  |  " par '\0' pour terminer la chaîne actuelle
+        commands[i++] = strdup(reste);
+        reste = token + 3; // Passer au caractère suivant après " | "
+    }
+
+    // Ajouter le dernier segment s'il existe
+    if (*reste != '\0' && i < NBR_MAX_PROCESSUS)
+    {
+        commands[i++] = strdup(reste);
+    }
+
+    *nb_commands = i;
+    free(commandline_tmp);
+}
+
+void free_subcommands(char *subcommands[], int num_subcommands)
+{
+    for (int i = 0; i < num_subcommands; i++)
+    {
+        free(subcommands[i]);
+    }
+}
+
+int extract_and_verify_subcommands(char *commandline, char *subcommands[], int *num_subcommands, int *is_really_substitution)
+{
+    int length = strlen(commandline);
+    int start_index = -1, end_index = -1;
+    *num_subcommands = 0;
+    *is_really_substitution = 0;
+    int is_substitution_started = 0;
+
+    for (int i = 0; i < length; i++)
+    {
+        if (i < length - 3 && commandline[i] == ' ' && commandline[i + 1] == '<' && commandline[i + 2] == '(' && commandline[i + 3] == ' ')
+        {
+            if (is_substitution_started || *num_subcommands >= MAX_SUBCOMMANDS)
+            {
+                free_subcommands(subcommands, *num_subcommands);
+                return 0; // Erreur de syntaxe ou trop de sous-commandes
+            }
+            *is_really_substitution = 1; // Pour personnaliser le message d'erreur en cas de syntaxe incorrecte
+            is_substitution_started = 1;
+            start_index = i + 4;
+            i += 3; // Skip "<( "
+        }
+        else if (is_substitution_started && commandline[i] == ' ' && i < length - 1 && commandline[i + 1] == ')')
+        {
+            end_index = i;
+            int subcommand_length = end_index - start_index;
+            subcommands[*num_subcommands] = (char *)malloc(subcommand_length + 1);
+            if (subcommands[*num_subcommands] == NULL)
+            {
+                free_subcommands(subcommands, *num_subcommands);
+                return 0; // Erreur d'allocation
+            }
+            strncpy(subcommands[*num_subcommands], commandline + start_index, subcommand_length);
+            subcommands[*num_subcommands][subcommand_length] = '\0';
+            (*num_subcommands)++;
+            is_substitution_started = 0;
+            i++; // Skip space after ')'
+        }
+    }
+    return !is_substitution_started;
 }
