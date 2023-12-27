@@ -385,3 +385,53 @@ void extract_pipe_commands(char *commandline, char *commands[], int *nb_commands
     *nb_commands = i;
     free(commandline_tmp);
 }
+
+void free_subcommands(char *subcommands[], int num_subcommands)
+{
+    for (int i = 0; i < num_subcommands; i++)
+    {
+        free(subcommands[i]);
+    }
+}
+
+int extract_and_verify_subcommands(char *commandline, char *subcommands[], int *num_subcommands, int *is_really_substitution)
+{
+    int length = strlen(commandline);
+    int start_index = -1, end_index = -1;
+    *num_subcommands = 0;
+    *is_really_substitution = 0;
+    int is_substitution_started = 0;
+
+    for (int i = 0; i < length; i++)
+    {
+        if (i < length - 3 && commandline[i] == ' ' && commandline[i + 1] == '<' && commandline[i + 2] == '(' && commandline[i + 3] == ' ')
+        {
+            if (is_substitution_started || *num_subcommands >= MAX_SUBCOMMANDS)
+            {
+                free_subcommands(subcommands, *num_subcommands);
+                return 0; // Erreur de syntaxe ou trop de sous-commandes
+            }
+            *is_really_substitution = 1; // Pour personnaliser le message d'erreur en cas de syntaxe incorrecte
+            is_substitution_started = 1;
+            start_index = i + 4;
+            i += 3; // Skip "<( "
+        }
+        else if (is_substitution_started && commandline[i] == ' ' && i < length - 1 && commandline[i + 1] == ')')
+        {
+            end_index = i;
+            int subcommand_length = end_index - start_index;
+            subcommands[*num_subcommands] = (char *)malloc(subcommand_length + 1);
+            if (subcommands[*num_subcommands] == NULL)
+            {
+                free_subcommands(subcommands, *num_subcommands);
+                return 0; // Erreur d'allocation
+            }
+            strncpy(subcommands[*num_subcommands], commandline + start_index, subcommand_length);
+            subcommands[*num_subcommands][subcommand_length] = '\0';
+            (*num_subcommands)++;
+            is_substitution_started = 0;
+            i++; // Skip space after ')'
+        }
+    }
+    return !is_substitution_started;
+}

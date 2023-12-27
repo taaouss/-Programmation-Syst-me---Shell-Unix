@@ -28,5 +28,7 @@ void reset_redirections(int stdin_copy, int stdout_copy, int stderr_copy);
 int execute_redirections(Redirection *redirections, int nb_redirections);
 int commandline_is_pipe(char *commandline);
 void extract_pipe_commands(char *commandline, char *commands[], int *nb_commands);
+void free_subcommands(char *subcommands[], int num_subcommands);
+int extract_and_verify_subcommands(char *commandline, char *subcommands[], int *num_subcommands, int *is_really_substitution);
 
 #endif
