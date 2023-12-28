@@ -386,52 +386,56 @@ void extract_pipe_commands(char *commandline, char *commands[], int *nb_commands
     free(commandline_tmp);
 }
 
-void free_subcommands(char *subcommands[], int num_subcommands)
+void free_elements(CommandElement elements[], int num_elements)
 {
-    for (int i = 0; i < num_subcommands; i++)
+    for (int i = 0; i < num_elements; i++)
     {
-        free(subcommands[i]);
+        free(elements[i].content);
     }
 }
 
-int extract_and_verify_subcommands(char *commandline, char *subcommands[], int *num_subcommands, int *is_really_substitution)
+int extract_and_verify_subcommands(char *commandline, CommandElement elements[], int *num_elements, int *contains_substitution)
 {
-    int length = strlen(commandline);
-    int start_index = -1, end_index = -1;
-    *num_subcommands = 0;
-    *is_really_substitution = 0;
-    int is_substitution_started = 0;
+    char *token = strtok(commandline, " ");
+    *num_elements = 0;
+    *contains_substitution = 0; // Initialisation de contains_substitution
+    int in_subcommand = 0;
+    char subcommand[MAX_COMMAND_LENGTH] = "";
 
-    for (int i = 0; i < length; i++)
+    while (token != NULL && *num_elements < MAX_ELEMENTS)
     {
-        if (i < length - 3 && commandline[i] == ' ' && commandline[i + 1] == '<' && commandline[i + 2] == '(' && commandline[i + 3] == ' ')
+        if (strcmp(token, "<(") == 0)
         {
-            if (is_substitution_started || *num_subcommands >= MAX_SUBCOMMANDS)
-            {
-                free_subcommands(subcommands, *num_subcommands);
-                return 0; // Erreur de syntaxe ou trop de sous-commandes
-            }
-            *is_really_substitution = 1; // Pour personnaliser le message d'erreur en cas de syntaxe incorrecte
-            is_substitution_started = 1;
-            start_index = i + 4;
-            i += 3; // Skip "<( "
+            in_subcommand = 1;
+            *contains_substitution = 1; // Mise à jour de contains_substitution
+            subcommand[0] = '\0';       // Reset subcommand string
         }
-        else if (is_substitution_started && commandline[i] == ' ' && i < length - 1 && commandline[i + 1] == ')')
+        else if (strcmp(token, ")") == 0)
         {
-            end_index = i;
-            int subcommand_length = end_index - start_index;
-            subcommands[*num_subcommands] = (char *)malloc(subcommand_length + 1);
-            if (subcommands[*num_subcommands] == NULL)
-            {
-                free_subcommands(subcommands, *num_subcommands);
-                return 0; // Erreur d'allocation
-            }
-            strncpy(subcommands[*num_subcommands], commandline + start_index, subcommand_length);
-            subcommands[*num_subcommands][subcommand_length] = '\0';
-            (*num_subcommands)++;
-            is_substitution_started = 0;
-            i++; // Skip space after ')'
+            in_subcommand = 0;
+            // Store the concatenated subcommand
+            elements[*num_elements].content = strdup(subcommand);
+            elements[*num_elements].type = 1;
+            (*num_elements)++;
         }
+        else
+        {
+            if (in_subcommand)
+            {
+                // Concatenate subcommand elements
+                strcat(subcommand, subcommand[0] != '\0' ? " " : "");
+                strcat(subcommand, token);
+            }
+            else
+            {
+                // Store normal argument
+                elements[*num_elements].content = strdup(token);
+                elements[*num_elements].type = 0;
+                (*num_elements)++;
+            }
+        }
+        token = strtok(NULL, " ");
     }
-    return !is_substitution_started;
+
+    return *contains_substitution;
 }
