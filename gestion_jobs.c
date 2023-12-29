@@ -10,32 +10,76 @@
 #include <errno.h>
 #include <signal.h>
 #include "signaux.h"
+#include <dirent.h>
+#include <fcntl.h>
 
 const char *etat_str[] = { "RUNNING", "STOPPED", "DETACHED", "KILLED", "DONE"};
 
 
 
-int jobs(struct Job* jobs, int nbr_jobs) {
+int jobs(char **argument, int nbr_arguments, struct Job* jobs, int nbr_jobs) {
+    
     int i = 0;
     if (jobs == NULL) return 1;
     char etat[10];
+    int p=nbr_arguments -1;
+
+
+    char *resultat = strstr(argument[p] , "%");
 
     while (i < nbr_jobs) {
              
-                
+            strcpy(etat,jobs[i].etat);
+            if (strcmp(jobs[i].etat,"DONE")==0) strcpy(etat,"Done");
+            else if (strcmp(jobs[i].etat,"RUNNING")==0) strcpy(etat,"Running");
+            else if (strcmp(jobs[i].etat,"STOPPED")==0) strcpy(etat,"Stopped");
+            else if (strcmp(jobs[i].etat,"DETACHED")==0) strcpy(etat,"Detached");
+            else if (strcmp(jobs[i].etat,"KILLED")==0) strcpy(etat,"Killed");    
 
-            if ((strcmp(jobs[i].etat,etat_str[3])!=0)) {
+            if (resultat !=NULL){
+                        memmove(resultat, resultat + 1, strlen(resultat));
+                        int num_pid = atoi(resultat);
+                        if(jobs[i].processus[0]==num_pid){
+                        printf("[%d]\t%d\t%s\t%s\n", jobs[i].numero_job + 1, jobs[i].processus[0], etat,jobs[i].command);
+                            if (nbr_arguments >= 2 && strcmp(argument[1],"-t")==0)
+                        {
+                            get_child_processes(getpgid(jobs[i].processus[0]));
+                        }
+                        if ( jobs[i].affiche == 1)
+                        {
+                            jobs[i].affiche = 0;
+                        }
+                        break;
+                        }else{
+                            if (getpgid(jobs[i].processus[0]) == getpgid(num_pid))
+                            {
+                               printf("[%d]", jobs[i].numero_job + 1);
+                               get_etat_processe_externe(resultat);
+                               break;
+                            }
+                            
+                        }
+                        
+                }
+
+
+            else {if ((strcmp(jobs[i].etat,etat_str[3])!=0)) {
                 
-                strcpy(etat,jobs[i].etat);
-                if (strcmp(jobs[i].etat,"DONE")==0) strcpy(etat,"Done");
-                else if (strcmp(jobs[i].etat,"RUNNING")==0) strcpy(etat,"Running");
-                else if (strcmp(jobs[i].etat,"STOPPED")==0) strcpy(etat,"Stopped");
-                else if (strcmp(jobs[i].etat,"DETACHED")==0) strcpy(etat,"Detached");
-                else if (strcmp(jobs[i].etat,"KILLED")==0) strcpy(etat,"Killed");
+                
 
                if (!(strcmp(jobs[i].etat,etat_str[4])==0 && (jobs[i].affiche==0))){
-                              
-                    printf("[%d]\t%d\t%s\t%s\n", jobs[i].numero_job + 1, jobs[i].processus[0], etat,jobs[i].command);
+
+
+                  
+                             
+                printf("[%d]\t%d\t%s\t%s\n", jobs[i].numero_job + 1, jobs[i].processus[0], etat,jobs[i].command);
+                            
+                   if (nbr_arguments >= 2 && strcmp(argument[1],"-t")==0)
+                   {
+                    get_child_processes(getpgid(jobs[i].processus[0]));
+                   }
+                    
+
                     if ( jobs[i].affiche == 1)
                     {
                         jobs[i].affiche = 0;
@@ -43,12 +87,160 @@ int jobs(struct Job* jobs, int nbr_jobs) {
                 }
                
                 
-            }
+            }}
   
         i++;
     }
     return 0;
 }
+void get_etat_processe_externe(char* pid){
+    char path[PATH_MAX];
+    snprintf(path, PATH_MAX, "/proc/%s/stat", pid);
+    int stat_fd = open(path, O_RDONLY);
+            if (stat_fd != -1) {
+                pid_t pid, ppid, gid;  // Ajout de gid
+                char state, cmd[1024];
+                ssize_t bytesRead = read(stat_fd, cmd, sizeof(cmd) - 1);
+                close(stat_fd);
+
+                // Vérifier bytesRead avant d'accéder à cmd
+                if (bytesRead > 0) {
+                    cmd[bytesRead] = '\0';
+                   sscanf(cmd, "%d %*s %c %d %d ", &pid, &state, &ppid, &gid);
+                   
+
+
+                    // Construire le chemin complet du fichier cmdline
+                    snprintf(path, PATH_MAX, "/proc/%d/cmdline", pid);
+
+                    // Ouvrir le fichier cmdline avec open
+                    int fd = open(path, O_RDONLY);
+                    if (fd != -1) {
+                        // Lire le contenu du fichier cmdline
+                        bytesRead = read(fd, cmd, sizeof(cmd) - 1);
+                        close(fd);
+
+                        // Vérifier bytesRead avant d'accéder à cmd
+                        if (bytesRead > 0) {
+                            cmd[bytesRead] = '\0';
+                            // Si le GID correspond au GID du processus parent, afficher les informations
+                            
+                                char state_str[15];
+                                switch (state) {
+                                    case 'R':
+                                        strcpy(state_str, "Running");
+                                        break;
+                                    case 'S':
+                                        strcpy(state_str, "Sleeping");
+                                        break;
+                                    case 'D':
+                                        strcpy(state_str, "Disk Sleep");
+                                        break;
+                                    case 'Z':
+                                        strcpy(state_str, "Zombie");
+                                        break;
+                                    case 'T':
+                                        strcpy(state_str, "Stopped");
+                                        break;
+                                    default:
+                                        strcpy(state_str, "Unknown");
+                                }
+                                state_str[strlen(state_str)]='\0';
+
+                                printf("\t%d\t%s %s\n", pid, state_str, cmd);
+                                // Ajoutez ici le code pour afficher d'autres informations selon vos besoins
+                            
+                        }
+                    }
+                }
+            }
+
+return;
+
+}
+void get_child_processes(pid_t parent_gid) {
+    DIR *dir;
+    struct dirent *entry;
+    char path[PATH_MAX];
+
+    // Ouvrir le répertoire /proc
+    dir = opendir("/proc");
+    if (dir == NULL) {
+        perror("Erreur lors de l'ouverture du répertoire /proc");
+        exit(EXIT_FAILURE);
+    }
+
+    // Parcourir les entrées du répertoire
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_DIR && atoi(entry->d_name) > 0) {
+            // Construire le chemin complet du fichier stat
+            snprintf(path, PATH_MAX, "/proc/%s/stat", entry->d_name);
+
+            // Ouvrir le fichier stat avec open
+            int stat_fd = open(path, O_RDONLY);
+            if (stat_fd != -1) {
+                pid_t pid, ppid, gid;  // Ajout de gid
+                char state, cmd[1024];
+                ssize_t bytesRead = read(stat_fd, cmd, sizeof(cmd) - 1);
+                close(stat_fd);
+
+                // Vérifier bytesRead avant d'accéder à cmd
+                if (bytesRead > 0) {
+                    cmd[bytesRead] = '\0';
+                   sscanf(cmd, "%d %*s %c %d %d ", &pid, &state, &ppid, &gid);
+                   
+
+
+                    // Construire le chemin complet du fichier cmdline
+                    snprintf(path, PATH_MAX, "/proc/%d/cmdline", pid);
+
+                    // Ouvrir le fichier cmdline avec open
+                    int fd = open(path, O_RDONLY);
+                    if (fd != -1) {
+                        // Lire le contenu du fichier cmdline
+                        bytesRead = read(fd, cmd, sizeof(cmd) - 1);
+                        close(fd);
+
+                        // Vérifier bytesRead avant d'accéder à cmd
+                        if (bytesRead > 0) {
+                            cmd[bytesRead] = '\0';
+                            // Si le GID correspond au GID du processus parent, afficher les informations
+                            if (gid == parent_gid && gid !=pid) {
+                                char state_str[15];
+                                switch (state) {
+                                    case 'R':
+                                        strcpy(state_str, "Running");
+                                        break;
+                                    case 'S':
+                                        strcpy(state_str, "Sleeping");
+                                        break;
+                                    case 'D':
+                                        strcpy(state_str, "Disk Sleep");
+                                        break;
+                                    case 'Z':
+                                        strcpy(state_str, "Zombie");
+                                        break;
+                                    case 'T':
+                                        strcpy(state_str, "Stopped");
+                                        break;
+                                    default:
+                                        strcpy(state_str, "Unknown");
+                                }
+                                state_str[strlen(state_str)]='\0';
+
+                                printf("\t|%d\t%s %s\n", pid, state_str, cmd);
+                                // Ajoutez ici le code pour afficher d'autres informations selon vos besoins
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    closedir(dir);
+}
+
 
 int jobs_err(struct Job* jobs, int nbr_jobs) {
     int i = 0;

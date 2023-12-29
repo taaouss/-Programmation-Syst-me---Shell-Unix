@@ -17,7 +17,8 @@ struct Job {
 
 
 
-int jobs(struct Job *jobs, int nbr_jobs);
+//int jobs(struct Job *jobs, int nbr_jobs);
+int jobs(char **argument, int nbr_arguments, struct Job* jobs, int nbr_jobs) ;
 
 struct Job* creer_jobs(int nombre_jobs, pid_t pere ,char* commande,int avant);
 
@@ -35,6 +36,7 @@ int jobs_err(struct Job* jobs, int nbr_jobs) ;
 
 int fg_commande(struct Job* jobs, int nbr_jobs, char* arg);
 
-int bg_commande(struct Job* jobs, int nbr_jobs, int job_number);
-
+//int bg_commande(struct Job* jobs, int nbr_jobs, int job_number);
+void get_child_processes(pid_t parent_gid);
+void get_etat_processe_externe(char* pid);
 #endif
