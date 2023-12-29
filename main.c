@@ -79,6 +79,29 @@ int main()
                     {
                         
                         i = modifie_args(args, i, &buf_tmp);
+
+
+                        index = commandline_is_redirection(buf_tmp);
+                        error_in_redirections = 0;
+                        if (index != -1)
+                        {
+                            extract_redirections(buf_tmp, &redirections, &error_in_redirections, &nb_redirections);
+                            if (error_in_redirections == 0)
+                            {
+                                error_in_redirections = execute_redirections(redirections, nb_redirections);
+                                code_retour = error_in_redirections;
+                                buf_tmp = extractCommandAndArgs(buf_tmp, index);
+
+                                extract_args(buf_tmp, args, &commande, &buf_tmp, &i, strlen(buf_tmp));
+                            }
+                        }
+                        if (error_in_redirections != 0)
+                        {
+                            perror("Erreur lors de la redirection\n");
+                            code_retour = 1;
+                        }
+
+
                         code_retour = cmdArrierePlan(args, nb_job, tab_jobs, len, buf_tmp);
                         nb_job++;
                     }
@@ -124,7 +147,7 @@ int main()
                             else if (strcmp(commande, "jobs") == 0)
                             {
                                  maj_jobs(tab_jobs, nb_job);
-                                if ((code_retour = jobs(tab_jobs, nb_job)) == 1)
+                                if ((code_retour = jobs(args, i,tab_jobs, nb_job)) == 1)
                                     perror("Erreur lors de la commande JOBS");
                             }
                             else if (strcmp(commande, "?") == 0)
