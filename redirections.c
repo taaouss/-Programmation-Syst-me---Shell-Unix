@@ -458,7 +458,7 @@ int execute_pipes(char *commandline, char *rep_precedent)
     int nb_redirections = 0;
     int code_retour = 0;
     Redirection *redirections;
-    pid_t pid;
+    // pid_t pid;
 
     extract_pipe_commands(commandline, pipe_commands, &nb_pipe_commands);
 
@@ -559,57 +559,57 @@ int execute_pipes(char *commandline, char *rep_precedent)
                     if ((code_retour = cd(args[1], rep_precedent)) != 0)
                         perror("Erreur lors de la commande cd");
                 }
-                else
-                {
-                    // Créer un nouveau processus pour exécuter la commande externe
+                // else
+                // {
+                //     // Créer un nouveau processus pour exécuter la commande externe
 
-                    pid = fork();
+                //     pid = fork();
 
-                    switch (pid)
-                    {
-                    case -1:
-                        perror("Erreur lors de la création du processus fils");
-                        break;
-                    case 0:
-                        // Code du processus fils : exécuter la commande externe
-                        setpgid(getpid(), getpid()); // Mettre le processus fils dans un nouveau groupe de processus
-                        reset_signaux_groupe(getpid());
-                        execvp(commande, args);
-                        perror("Erreur lors de l'exécution de la commande");
-                        exit(3); // Valeur de sortie arbitraire en cas d'erreur
-                        break;
-                    default:
-                        // Code du processus parent : attendre que le processus fils se termine
-                        tcsetpgrp(STDIN_FILENO, pid);
-                        do
-                        {
-                            waitpid(pid, &status, WUNTRACED | WCONTINUED);
-                        } while (!(WIFEXITED(status)) && !(WIFSIGNALED(status)) && !(WIFSTOPPED(status)) && !(WIFCONTINUED(status)));
+                //     switch (pid)
+                //     {
+                //     case -1:
+                //         perror("Erreur lors de la création du processus fils");
+                //         break;
+                //     case 0:
+                //         // Code du processus fils : exécuter la commande externe
+                //         setpgid(getpid(), getpid()); // Mettre le processus fils dans un nouveau groupe de processus
+                //         reset_signaux_groupe(getpid());
+                //         execvp(commande, args);
+                //         perror("Erreur lors de l'exécution de la commande");
+                //         exit(3); // Valeur de sortie arbitraire en cas d'erreur
+                //         break;
+                //     default:
+                //         // Code du processus parent : attendre que le processus fils se termine
+                //         tcsetpgrp(STDIN_FILENO, pid);
+                //         do
+                //         {
+                //             waitpid(pid, &status, WUNTRACED | WCONTINUED);
+                //         } while (!(WIFEXITED(status)) && !(WIFSIGNALED(status)) && !(WIFSTOPPED(status)) && !(WIFCONTINUED(status)));
 
-                        // Restaurer le contrôle au shell JSH
-                        tcsetpgrp(STDIN_FILENO, getpgrp());
+                //         // Restaurer le contrôle au shell JSH
+                //         tcsetpgrp(STDIN_FILENO, getpgrp());
 
-                        if (WIFSTOPPED(status))
-                        {
+                //         if (WIFSTOPPED(status))
+                //         {
 
-                            int recu = WSTOPSIG(status);
-                            if (recu == 19 || recu == 20)
-                            {
+                //             int recu = WSTOPSIG(status);
+                //             if (recu == 19 || recu == 20)
+                //             {
 
-                                new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
-                                strcpy(new_job->etat, etat_str[1]);
-                                new_job->affiche = 1;
-                                new_job->avant = 1;
-                                tab_jobs[nb_job] = *new_job;
-                                free(new_job);
-                                nb_job++;
-                            }
-                        }
+                //                 new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
+                //                 strcpy(new_job->etat, etat_str[1]);
+                //                 new_job->affiche = 1;
+                //                 new_job->avant = 1;
+                //                 tab_jobs[nb_job] = *new_job;
+                //                 free(new_job);
+                //                 nb_job++;
+                //             }
+                //         }
 
-                        code_retour = WEXITSTATUS(status);
-                        break;
-                    }
-                }
+                //         code_retour = WEXITSTATUS(status);
+                //         break;
+                //     }
+                // }
             }
             exit(0);
         }
