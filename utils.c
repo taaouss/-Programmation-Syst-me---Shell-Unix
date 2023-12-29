@@ -17,16 +17,18 @@ void extract_args(char *buf, char **args, char **commande, char **buf_tmp, int *
 
     // Dupliquer la chaîne de commande pour la manipulation
 
-   if (buf != *buf_tmp)
+    if (buf != *buf_tmp)
     {
-     free(*buf_tmp); 
-     *buf_tmp = strdup(buf);
-   }else{
-    
+        free(*buf_tmp);
+        *buf_tmp = strdup(buf);
+    }
+    else
+    {
+
         for (int j = 0; args[j] != NULL; j++)
         {
-         free(args[j]);
-         args[j] =NULL;
+            free(args[j]);
+            args[j] = NULL;
         }
     }
     *i = 0;
