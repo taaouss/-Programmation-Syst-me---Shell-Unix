@@ -11,6 +11,7 @@
 #include "gestion_jobs.h"
 #include "utils.h"
 #include "commandes_internes.h"
+#include "signaux.h"
 
 const char mes_symboles[7][4] = {"<", "2>>", ">>", "2>|", "2>", ">|", ">"};
 
@@ -458,20 +459,24 @@ int execute_pipes(char *commandline, char *rep_precedent)
     int nb_redirections = 0;
     int code_retour = 0;
     Redirection *redirections;
-    // pid_t pid;
+    pid_t pid;
+    int status_cmd_externe;
+    // struct Job *new_job;
 
     extract_pipe_commands(commandline, pipe_commands, &nb_pipe_commands);
 
+    int pipefd[2 * (nb_pipe_commands - 1)]; // Tableau pour stocker les descripteurs de fichiers des pipes
+
     for (int j = 0; j < nb_pipe_commands; j++)
     {
-        fprintf(stderr, "pipe_commands[j] : %s\n", pipe_commands[j]);
-        fprintf(stderr, "in_fd : %d\n", in_fd);
+        // fprintf(stderr, "pipe_commands[j] : %s\n", pipe_commands[j]);
+        // fprintf(stderr, "in_fd : %d\n", in_fd);
 
-        int pipefd[2];
+        // int pipefd[2];
 
         if (j < nb_pipe_commands - 1) // Pas besoin de pipe pour la dernière commande
         {
-            if (pipe(pipefd) < 0) // Création du pipe
+            if (pipe(pipefd + j * 2) < 0) // Création du pipe
             {
                 perror("Erreur lors de la création du pipe");
                 // exit(1); // TODO: gérer cette erreur
@@ -488,8 +493,7 @@ int execute_pipes(char *commandline, char *rep_precedent)
 
         else if (pipe_pid == 0)
         {
-            printf("Processus fils %d\n", getpid());
-
+            // printf("Processus fils %d\n", getpid());
             if (in_fd != 0) // Si ce n'est pas la première commande
             {
                 dup2(in_fd, 0); // Redirige stdin vers l'extrémité de lecture du pipe précédent
@@ -498,17 +502,30 @@ int execute_pipes(char *commandline, char *rep_precedent)
 
             if (j < nb_pipe_commands - 1) // Pas besoin de pipe pour la dernière commande
             {
-                close(pipefd[0]);
-                dup2(pipefd[1], 1); // Redirige stdout
-                close(pipefd[1]);
+                // close(pipefd[0]);
+                // dup2(pipefd[1], 1); // Redirige stdout
+                // close(pipefd[1]);
+                close(pipefd[j * 2]);
+                dup2(pipefd[j * 2 + 1], 1);
+                close(pipefd[j * 2 + 1]);
             }
 
+            // Fermer toutes les autres extrémités du pipe dans l'enfant
+            // for (int k = 0; k < 2 * (nb_pipe_commands - 1); k++)
+            // {
+            //     if (k != j * 2 && k != j * 2 + 1)
+            //     {
+            //         close(pipefd[k]);
+            //     }
+            // }
             // Exécuter la commande
+            // if (j == nb_pipe_commands - 1)
+            // fprintf(stderr, "------------- Résultat ---------------\n");
             // Pour l'instant on duplique le code
 
             extract_args(strdup(pipe_commands[j]), args, &commande, &pipe_commands[j], &i, strlen(pipe_commands[j]));
 
-            fprintf(stderr, "commande extraite: %s\n", commande);
+            // fprintf(stderr, "commande extraite: %s\n", commande);
             // Vérifier si la commande est une redirection
             index = commandline_is_redirection(pipe_commands[j]);
             error_in_redirections = 0;
@@ -535,7 +552,7 @@ int execute_pipes(char *commandline, char *rep_precedent)
                 // fprintf(stderr, "commande : %s\n", commande);
                 if (strcmp(commande, "pwd") == 0)
                 {
-                    fprintf(stderr, "pwd\n");
+                    // fprintf(stderr, "pwd\n");
                     // Exécuter la commande pwd
                     // verifier si cette commande n'a pas d'arguments en entrée
                     // sinon la commande est incorrecte
@@ -549,84 +566,206 @@ int execute_pipes(char *commandline, char *rep_precedent)
                     {
                         // printf("args[1] = %s\n", args[1]);
                         perror("Commande incorrecte \n");
+                        code_retour = 1;
+                    }
+                }
+                // else if (strcmp(commande, "jobs") == 0)
+                // {
+                //     maj_jobs(tab_jobs, nb_job);
+                //     if ((code_retour = jobs(args, i, tab_jobs, nb_job)) == 1)
+                //         perror("Erreur lors de la commande JOBS");
+                // }
+                else if (strcmp(commande, "?") == 0)
+                {
+                    // Afficher le code de retour
+                    // verifier si cette commande n'a pas d'arguments en entrée
+                    // sinon la commande est incorrecte
+
+                    if (args[1] == NULL)
+                    {
+                        printf("%d\n", code_retour);
+                        code_retour = 0;
+                    }
+                    else
+                    {
+                        perror("Commande incorrecte \n");
+                        code_retour = 1;
                     }
                 }
                 else if (strcmp(commande, "cd") == 0)
                 {
-                    fprintf(stderr, "cd\n");
-                    fprintf(stderr, "args[1] : %s\n", args[1]);
+                    // fprintf(stderr, "cd\n");
+                    // fprintf(stderr, "args[1] : %s\n", args[1]);
                     // Exécuter la commande cd
                     if ((code_retour = cd(args[1], rep_precedent)) != 0)
                         perror("Erreur lors de la commande cd");
                 }
-                // else
+                // else if (strcmp(commande, "kill") == 0)
                 // {
-                //     // Créer un nouveau processus pour exécuter la commande externe
-
-                //     pid = fork();
-
-                //     switch (pid)
+                //     // Exécuter la commande kill
+                //     if ((code_retour = kill_commande(args, i, tab_jobs, nb_job)) != 0)
                 //     {
-                //     case -1:
-                //         perror("Erreur lors de la création du processus fils");
-                //         break;
-                //     case 0:
-                //         // Code du processus fils : exécuter la commande externe
-                //         setpgid(getpid(), getpid()); // Mettre le processus fils dans un nouveau groupe de processus
-                //         reset_signaux_groupe(getpid());
-                //         execvp(commande, args);
-                //         perror("Erreur lors de l'exécution de la commande");
-                //         exit(3); // Valeur de sortie arbitraire en cas d'erreur
-                //         break;
-                //     default:
-                //         // Code du processus parent : attendre que le processus fils se termine
-                //         tcsetpgrp(STDIN_FILENO, pid);
-                //         do
-                //         {
-                //             waitpid(pid, &status, WUNTRACED | WCONTINUED);
-                //         } while (!(WIFEXITED(status)) && !(WIFSIGNALED(status)) && !(WIFSTOPPED(status)) && !(WIFCONTINUED(status)));
-
-                //         // Restaurer le contrôle au shell JSH
-                //         tcsetpgrp(STDIN_FILENO, getpgrp());
-
-                //         if (WIFSTOPPED(status))
-                //         {
-
-                //             int recu = WSTOPSIG(status);
-                //             if (recu == 19 || recu == 20)
-                //             {
-
-                //                 new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
-                //                 strcpy(new_job->etat, etat_str[1]);
-                //                 new_job->affiche = 1;
-                //                 new_job->avant = 1;
-                //                 tab_jobs[nb_job] = *new_job;
-                //                 free(new_job);
-                //                 nb_job++;
-                //             }
-                //         }
-
-                //         code_retour = WEXITSTATUS(status);
-                //         break;
+                //         perror("Erreur lors de la commande kill");
+                //     }
+                //     else
+                //     {
+                //         maj_jobs(tab_jobs, nb_job);
+                //         maj_jobs(tab_jobs, nb_job);
                 //     }
                 // }
+                // else if (strcmp(commande, "exit") == 0)
+                // {
+                //     // Sortir du programme avec un code de retour optionnel
+
+                //     if (is_stopped(tab_jobs, nb_job) || is_running(tab_jobs, nb_job))
+                //     {
+                //         fprintf(stderr, "exit\n");
+                //         fprintf(stderr, "There are stopped jobs\n");
+                //         code_retour = 1;
+                //     }
+                //     else
+                //     {
+                //         if (args[1] != NULL)
+                //             code_retour = atoi(args[1]);
+                //         exit(code_retour);
+                //     }
+                // }
+                // else if (strcmp(commande, "fg") == 0)
+                // {
+                //     if ((code_retour = fg_commande(tab_jobs, nb_job, args[1])) != 0)
+                //         perror("Erreur lors de la commande fg");
+                // }
+                else
+                {
+                    // Créer un nouveau processus pour exécuter la commande externe
+
+                    pid = fork();
+
+                    switch (pid)
+                    {
+                    case -1:
+                        perror("Erreur lors de la création du processus fils");
+                        break;
+                    case 0:
+                        // Code du processus fils : exécuter la commande externe
+                        setpgid(getpid(), getpid()); // Mettre le processus fils dans un nouveau groupe de processus
+                        reset_signaux_groupe(getpid());
+                        execvp(commande, args);
+                        perror("Erreur lors de l'exécution de la commande");
+                        exit(3); // Valeur de sortie arbitraire en cas d'erreur
+                        break;
+                    default:
+                        // Code du processus parent : attendre que le processus fils se termine
+                        tcsetpgrp(STDIN_FILENO, pid);
+                        do
+                        {
+                            waitpid(pid, &status_cmd_externe, WUNTRACED | WCONTINUED);
+                        } while (!(WIFEXITED(status_cmd_externe)) && !(WIFSIGNALED(status_cmd_externe)) && !(WIFSTOPPED(status_cmd_externe)) && !(WIFCONTINUED(status_cmd_externe)));
+
+                        // Restaurer le contrôle au shell JSH
+                        tcsetpgrp(STDIN_FILENO, getpgrp());
+
+                        if (WIFSTOPPED(status_cmd_externe))
+                        {
+                            // int recu = WSTOPSIG(status_cmd_externe);
+                            // if (recu == 19 || recu == 20)
+                            // {
+                            //     new_job = creer_jobs(nb_job, pid, pipe_commands[j], args, 1);
+                            //     strcpy(new_job->etat, etat_str[1]);
+                            //     new_job->affiche = 1;
+                            //     new_job->avant = 1;
+                            //     tab_jobs[nb_job] = *new_job;
+                            //     free(new_job);
+                            //     nb_job++;
+                            // }
+                        }
+
+                        code_retour = WEXITSTATUS(status_cmd_externe);
+                        break;
+                    }
+                }
             }
-            exit(0);
+            // fprintf(stderr, "-----------------------------------------\n");
+            // fprintf(stderr, "Processus fils %d execute %s\n", getpid(), pipe_commands[j]);
+            // fprintf(stderr, "code_retour de la commande executée par le fils: %d\n", code_retour);
+            exit(code_retour);
         }
         else
         {
-            wait(NULL); // Attend la fin du processus enfant
-            fprintf(stderr, "Processus parent %d\n", getpid());
+            // int status;
+            // waitpid(pipe_pid, &status, 0); // Attendre la fin de l'enfant
+            // if (WIFEXITED(status))
+            // {
+            //     code_retour = WEXITSTATUS(status);
+            // }
+            // else if (WIFSIGNALED(status))
+            // {
+            //     code_retour = WTERMSIG(status);
+            // }
+            // else if (WIFSTOPPED(status))
+            // {
+            //     code_retour = WSTOPSIG(status);
+            // }
+            // else if (WIFCONTINUED(status))
+            // {
+            //     code_retour = 0;
+            // }
+            // else
+            // {
+            //     code_retour = 1;
+            // }
+            // fprintf(stderr, "Processus parent %d a redirigé fd %d vers fd %d\n", getpid(), in_fd, pipefd[0]);
+            // fprintf(stderr, "Processus parent %d a redirigé fd %d vers fd %d\n", getpid(), pipefd[1], 1);
+            // fprintf(stderr, "Processus fils %d terminé\n", pipe_pid);
+            // fprintf(stderr, "code_retour du fils dans le père: %d\n", code_retour);
+            // fprintf(stderr, "-----------------------------------------\n");
+            // if (j < nb_pipe_commands - 1)
+            // {
+            //     close(pipefd[1]); // Ferme l'extrémité d'écriture du pipe
+            //     if (in_fd != STDIN_FILENO)
+            //     {
+            //         close(in_fd);
+            //     }
+            //     in_fd = pipefd[0]; // Utilise l'extrémité de lecture pour la prochaine commande
+            // }
+            if (in_fd != STDIN_FILENO)
+            {
+                close(in_fd);
+            }
+
             if (j < nb_pipe_commands - 1)
             {
-                close(pipefd[1]); // Ferme l'extrémité d'écriture du pipe
-                if (in_fd != STDIN_FILENO)
-                {
-                    close(in_fd);
-                }
-                in_fd = pipefd[0]; // Utilise l'extrémité de lecture pour la prochaine commande
+                close(pipefd[j * 2 + 1]);
+                in_fd = pipefd[j * 2];
             }
         }
+        // maj_jobs(tab_jobs, nb_job);
+        // jobs_err(tab_jobs, nb_job);
+    }
+    int status;
+    for (int i = 0; i < nb_pipe_commands; i++)
+    {
+        wait(&status);
+    }
+    if (WIFEXITED(status))
+    {
+        code_retour = WEXITSTATUS(status);
+    }
+    else if (WIFSIGNALED(status))
+    {
+        code_retour = WTERMSIG(status);
+    }
+    else if (WIFSTOPPED(status))
+    {
+        code_retour = WSTOPSIG(status);
+    }
+    else if (WIFCONTINUED(status))
+    {
+        code_retour = 0;
+    }
+    else
+    {
+        code_retour = 1;
     }
     return code_retour;
 }
