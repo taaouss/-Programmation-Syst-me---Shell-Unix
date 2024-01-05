@@ -40,9 +40,9 @@ void extract_pipe_commands(char *commandline, char *commands[], int *nb_commands
 void free_elements(CommandElement elements[], int num_elements);
 int execute_pipes(char *commandline, char *rep_precedent);
 
-
 int extract_and_verify_subcommands(char *commandline, CommandElement elements[], int *num_elements, int *contains_substitution);
 
-int execute_subcommands(CommandElement elements[], int num_elements,int pipe_tmp[],int rec,char *commandline);
+int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tmp[], int rec, char *commandline);
+int redirections_with_substituions(const char *commandLine, char **extracted);
 
 #endif
