@@ -399,54 +399,8 @@ void free_elements(CommandElement elements[], int num_elements)
     }
 }
 
-int extract_and_verify_subcommands(char *commandline, CommandElement elements[], int *num_elements, int *contains_substitution)
-{
-    char *commandline_tmp = strdup(commandline);
-    char *token = strtok(commandline_tmp, " ");
-    *num_elements = 0;
-    *contains_substitution = 0; // Initialisation de contains_substitution
-    int in_subcommand = 0;
-    char subcommand[MAX_COMMAND_LENGTH] = "";
-
-    while (token != NULL && *num_elements < MAX_ELEMENTS)
-    {
-        if (strcmp(token, "<(") == 0)
-        {
-            in_subcommand = 1;
-            *contains_substitution = 1; // Mise à jour de contains_substitution
-            subcommand[0] = '\0';       // Reset subcommand string
-        }
-        else if (strcmp(token, ")") == 0)
-        {
-            in_subcommand = 0;
-            // Store the concatenated subcommand
-            elements[*num_elements].content = strdup(subcommand);
-            elements[*num_elements].type = 1;
-            (*num_elements)++;
-        }
-        else
-        {
-            if (in_subcommand)
-            {
-                // Concatenate subcommand elements
-                strcat(subcommand, subcommand[0] != '\0' ? " " : "");
-                strcat(subcommand, token);
-            }
-            else
-            {
-                // Store normal argument
-                elements[*num_elements].content = strdup(token);
-                elements[*num_elements].type = 0;
-                (*num_elements)++;
-            }
-        }
-        token = strtok(NULL, " ");
-    }
-
-    return *contains_substitution;
-}
-
 int execute_pipes(char *commandline, char *rep_precedent)
+
 {
     char *pipe_commands[MAX_SUBCOMMANDS];
     int nb_pipe_commands = 0;
@@ -656,4 +610,242 @@ int execute_pipes(char *commandline, char *rep_precedent)
         code_retour = 1;
     }
     return code_retour;
+}
+
+int extract_and_verify_subcommands(char *commandline, CommandElement elements[], int *num_elements, int *contains_substitution)
+{
+    char *commandline_tmp = strdup(commandline);
+    char *token = strtok(commandline_tmp, " ");
+    *num_elements = 0;
+    *contains_substitution = 0;
+    int in_subcommand = 0;
+    char subcommand[MAX_COMMAND_LENGTH] = "";
+    int nested_level = 0;
+
+    while (token != NULL && *num_elements < MAX_ELEMENTS)
+    {
+        if (strcmp(token, "<(") == 0)
+        {
+            if (in_subcommand)
+            {
+                // Nested subcommand
+                nested_level++;
+                strcat(subcommand, " ");
+                strcat(subcommand, token);
+            }
+            else
+            {
+                // Start of a new subcommand
+                in_subcommand = 1;
+                (*contains_substitution) = 1;
+                subcommand[0] = '\0';
+                // strcat(subcommand, token);
+            }
+        }
+        else if (strcmp(token, ")") == 0)
+        {
+            if (in_subcommand)
+            {
+                if (nested_level > 0)
+                {
+                    // Inside a nested subcommand
+                    nested_level--;
+                    strcat(subcommand, " ");
+                    strcat(subcommand, token);
+                }
+                else
+                {
+                    // End of the current subcommand
+                    in_subcommand = 0;
+                    elements[*num_elements].content = strdup(subcommand);
+                    elements[*num_elements].type = 1;
+                    (*num_elements)++;
+                    nested_level = 0;
+                }
+            }
+            else
+            {
+                // Normal case, just store the argument
+                elements[*num_elements].content = strdup(token);
+                elements[*num_elements].type = 0;
+                (*num_elements)++;
+            }
+        }
+        else
+        {
+            if (in_subcommand)
+            {
+                // Inside a subcommand, concatenate elements
+                strcat(subcommand, subcommand[0] != '\0' ? " " : "");
+                strcat(subcommand, token);
+            }
+            else
+            {
+                // Normal case, store the argument
+                elements[*num_elements].content = strdup(token);
+                elements[*num_elements].type = 0;
+                (*num_elements)++;
+            }
+        }
+
+        token = strtok(NULL, " ");
+    }
+
+    // If the last element is a subcommand, add it to the list
+    if (in_subcommand)
+    {
+        elements[*num_elements].content = strdup(subcommand);
+        elements[*num_elements].type = 1;
+        (*num_elements)++;
+    }
+
+    return *contains_substitution;
+}
+
+int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tmp[], int rec, char *commandline)
+{
+
+    char *args[NBR_MAX_ARGUMENTS];
+    size_t len = 0;
+    int cpt = 0;
+    char *buf_tmp = NULL, *commande;
+    char cmd_pipe[PATH_MAX];
+    pid_t pid;
+    Redirection *redirections = NULL;
+    int nb_redirections = 0;
+    int pipes[num_elements][2];
+
+    // Création des processus fils avec les pipes
+    for (int i = 0; i < num_elements - 1; i++)
+    {
+
+        if (elements[i + 1].type == 1)
+        {
+
+            if (pipe(pipes[i]) == -1)
+            {
+                perror("pipe");
+                exit(EXIT_FAILURE);
+            }
+
+            pid = fork();
+
+            if (pid == -1)
+            {
+                perror("fork");
+                exit(EXIT_FAILURE);
+            }
+
+            if (pid == 0)
+            { // Processus fils
+                // Fermeture des pipes inutiles
+                setpgid(getppid(), getppid());
+              //  printf("lyessspid2 \n");
+                for (int j = 0; j < i; j++)
+                {
+                    close(pipes[j][0]); // Fermeture du descripteur de lecture
+                    close(pipes[j][1]); // Fermeture du descripteur d'écriture
+                }
+
+                if (dup2(pipes[i][1], 1) == -1)
+                {
+                    perror("dup2");
+                    return 1;
+                }
+
+                close(pipes[i][0]);
+                close(pipes[i][1]);
+                int nb_elements_tmp = 0;
+                CommandElement elements_tmp[MAX_ELEMENTS];
+                int contains_substitution_tmp = 0;
+
+                //  fprintf(stderr, "lyess %s\n", elements[i + 1].content);
+                if (extract_and_verify_subcommands(elements[i + 1].content, elements_tmp, &nb_elements_tmp, &contains_substitution_tmp))
+                {
+                    int pipe_tmp[2];
+                    if (pipe(pipe_tmp) == -1)
+                    {
+                        perror("pipe");
+                        exit(EXIT_FAILURE);
+                    }
+                    if (!fork())
+                        execute_subcommands(elements_tmp, nb_elements_tmp, pipe_tmp, 1, elements[i + 1].content);
+                    else
+                        wait(NULL);
+                    close(pipe_tmp[1]);
+                    strcpy(cmd_pipe, elements[i + 1].content);
+                    extract_args(cmd_pipe, args, &commande, &buf_tmp, &cpt, len);
+                    // free(cmd_pipe);
+
+                    snprintf(args[1], sizeof(pipe_tmp[0]) + 9, "/dev/fd/%d", pipe_tmp[0]);
+                    args[2] = NULL;
+                }
+                else
+                {
+                     strcpy(cmd_pipe, elements[i + 1].content);
+                    extract_args(cmd_pipe, args, &commande, &buf_tmp, &cpt, len);
+                    if (commandline_is_pipe(elements[i + 1].content))
+                    {
+                        // 2- Pipe
+                        execute_pipes(elements[i + 1].content, commandline);
+                       // fprintf(stderr, "fin \n");
+                        exit(0);
+                    }
+                }
+              //   fprintf(stderr, "exec %s \n",elements[i + 1].content);
+                execvp(commande, args);
+                perror("erreur");
+            }
+        }
+    }
+    if (pid != 0)
+    {
+
+        while (wait(NULL) != -1)
+        {
+        }
+        for (int i = 0; i < num_elements - 1; i++)
+        {
+            close(pipes[i][1]); // Descripteur de lecture
+        }
+        cpt = 0;
+        strcpy(cmd_pipe,elements[0].content);
+        extract_args(elements[0].content, args, &commande, &buf_tmp, &cpt, len);
+        for (int i = 0; i < num_elements - 1; i++)
+        {
+            args[i + cpt] = NULL;
+            if (args[i + cpt] == NULL)
+            {
+                args[i + cpt] = malloc(sizeof(pipes[i][0]) + 9);
+            }
+
+            if (elements[i + 1].type == 1)
+            {
+                snprintf(args[i + cpt], sizeof(pipes[i][0]) + 9, "/dev/fd/%d", pipes[i][0]);
+            }
+            else
+            {
+                strcpy(args[i + cpt], elements[i + 1].content);
+            }
+        }
+        args[cpt + num_elements - 1] = NULL;
+
+        // for (int i = 0; i <= cpt + num_elements -1; i++)
+        // {
+        //    printf("lyess %s %d %d \n",args[i],i,cpt + num_elements);
+        //   }
+
+        if (rec == 1)
+        {
+            dup2(pipe_tmp[1], 1);
+            close(pipe_tmp[0]);
+            close(pipe_tmp[1]);
+        }
+         
+        execvp(commande, args);
+        perror("Erreur lors de l'exécution de la commande");
+        exit(3);
+    }
+
+    return 1;
 }

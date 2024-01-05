@@ -136,6 +136,16 @@ int main()
         {
             // 1- Substitution de processus
             /* code */
+            if (!fork())
+            {
+                int pi[2];
+                 execute_subcommands(elements, nb_elements,pi,0,buf_tmp);
+          
+            }
+            else
+            {
+                wait(NULL);
+            }
         }
         else if (commandline_is_pipe(buf_tmp))
         {
@@ -248,6 +258,11 @@ int main()
                 else if (strcmp(commande, "fg") == 0)
                 {
                     if ((code_retour = fg_commande(tab_jobs, nb_job, args[1])) != 0)
+                        perror("Erreur lors de la commande fg");
+                }
+                else if (strcmp(commande, "bg") == 0)
+                {
+                    if ((code_retour = bg_commande(tab_jobs, nb_job, args[1])) != 0)
                         perror("Erreur lors de la commande fg");
                 }
                 else
