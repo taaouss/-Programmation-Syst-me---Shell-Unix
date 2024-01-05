@@ -740,7 +740,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
             { // Processus fils
                 // Fermeture des pipes inutiles
                 setpgid(getppid(), getppid());
-              //  printf("lyessspid2 \n");
+                //  printf("lyessspid2 \n");
                 for (int j = 0; j < i; j++)
                 {
                     close(pipes[j][0]); // Fermeture du descripteur de lecture
@@ -782,17 +782,17 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 }
                 else
                 {
-                     strcpy(cmd_pipe, elements[i + 1].content);
+                    strcpy(cmd_pipe, elements[i + 1].content);
                     extract_args(cmd_pipe, args, &commande, &buf_tmp, &cpt, len);
                     if (commandline_is_pipe(elements[i + 1].content))
                     {
                         // 2- Pipe
                         execute_pipes(elements[i + 1].content, commandline);
-                       // fprintf(stderr, "fin \n");
+                        // fprintf(stderr, "fin \n");
                         exit(0);
                     }
                 }
-              //   fprintf(stderr, "exec %s \n",elements[i + 1].content);
+                //   fprintf(stderr, "exec %s \n",elements[i + 1].content);
                 execvp(commande, args);
                 perror("erreur");
             }
@@ -809,7 +809,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
             close(pipes[i][1]); // Descripteur de lecture
         }
         cpt = 0;
-        strcpy(cmd_pipe,elements[0].content);
+        strcpy(cmd_pipe, elements[0].content);
         extract_args(elements[0].content, args, &commande, &buf_tmp, &cpt, len);
         for (int i = 0; i < num_elements - 1; i++)
         {
@@ -841,11 +841,67 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
             close(pipe_tmp[0]);
             close(pipe_tmp[1]);
         }
-         
+
         execvp(commande, args);
         perror("Erreur lors de l'exécution de la commande");
         exit(3);
     }
 
     return 1;
+}
+
+int redirections_with_substituions(const char *commandLine, char **extracted)
+{
+    const char *current = commandLine;
+    int found = 0;
+
+    while (*current != '\0')
+    {
+        if (*current == '<')
+        {
+            if (*(current + 1) == ' ' && *(current + 2) == '<' && *(current + 3) == '(' && *(current + 4) == ' ')
+            {
+                // Commencer l'extraction ici
+                current += 5; // Ignorer "< <( "
+                const char *start = current;
+                int parenCount = 1; // Compter le niveau d'imbrication des parenthèses
+
+                while (*current != '\0' && parenCount > 0)
+                {
+                    if (*current == '(')
+                    {
+                        parenCount++;
+                    }
+                    else if (*current == ')')
+                    {
+                        parenCount--;
+                    }
+                    current++;
+                }
+
+                if (parenCount == 0)
+                {
+                    int length = current - start - 1;        // Exclure la parenthèse fermante finale
+                    *extracted = (char *)malloc(length + 1); // Allouer la mémoire pour la chaîne extraite
+                    if (*extracted != NULL)
+                    {
+                        strncpy(*extracted, start, length);
+                        (*extracted)[length] = '\0'; // Ajouter un caractère de fin de chaîne
+                        found = 1;
+                    }
+                    break;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+        current++;
+    }
+    return found;
 }
