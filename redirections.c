@@ -710,10 +710,15 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
     int cpt = 0;
     char *buf_tmp = NULL, *commande;
     char cmd_pipe[PATH_MAX];
+    char *red = NULL;
     pid_t pid;
     Redirection *redirections = NULL;
     int nb_redirections = 0;
     int pipes[num_elements][2];
+   // for (int i = 0; i < num_elements; i++)
+   // {
+   //     printf("lyess %s %d \n", elements[i].content, elements[i].type);
+   // }
 
     // Création des processus fils avec les pipes
     for (int i = 0; i < num_elements - 1; i++)
@@ -721,6 +726,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
 
         if (elements[i + 1].type == 1)
         {
+           // printf("for type 1 %s %d \n", elements[i + 1].content, elements[i + 1].type);
 
             if (pipe(pipes[i]) == -1)
             {
@@ -746,7 +752,8 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                     close(pipes[j][0]); // Fermeture du descripteur de lecture
                     close(pipes[j][1]); // Fermeture du descripteur d'écriture
                 }
-
+                int lyes;
+                dup2(1, lyes);
                 if (dup2(pipes[i][1], 1) == -1)
                 {
                     perror("dup2");
@@ -759,9 +766,10 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 CommandElement elements_tmp[MAX_ELEMENTS];
                 int contains_substitution_tmp = 0;
 
-                //  fprintf(stderr, "lyess %s\n", elements[i + 1].content);
+              //  fprintf(stderr, "elements[i + 1].content       %s\n", elements[i + 1].content);
                 if (extract_and_verify_subcommands(elements[i + 1].content, elements_tmp, &nb_elements_tmp, &contains_substitution_tmp))
                 {
+                    //fprintf(stderr, "cattttttttttttttttttttttttttt\n");
                     int pipe_tmp[2];
                     if (pipe(pipe_tmp) == -1)
                     {
@@ -769,7 +777,10 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                         exit(EXIT_FAILURE);
                     }
                     if (!fork())
+                    {
+                        dup2(lyes, 1);
                         execute_subcommands(elements_tmp, nb_elements_tmp, pipe_tmp, 1, elements[i + 1].content);
+                    }
                     else
                         wait(NULL);
                     close(pipe_tmp[1]);
@@ -792,7 +803,8 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                         exit(0);
                     }
                 }
-                //   fprintf(stderr, "exec %s \n",elements[i + 1].content);
+      
+                
                 execvp(commande, args);
                 perror("erreur");
             }
@@ -804,9 +816,15 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
         while (wait(NULL) != -1)
         {
         }
+       
+
         for (int i = 0; i < num_elements - 1; i++)
         {
-            close(pipes[i][1]); // Descripteur de lecture
+            close(pipes[i][1]); // Descripteur d'ecriture
+            if (redirections_with_substituions(commandline, &red))
+        {
+            if (i == num_elements - 2)dup2(pipes[i][0],0);
+        }
         }
         cpt = 0;
         strcpy(cmd_pipe, elements[0].content);
@@ -830,10 +848,16 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
         }
         args[cpt + num_elements - 1] = NULL;
 
-        // for (int i = 0; i <= cpt + num_elements -1; i++)
-        // {
-        //    printf("lyess %s %d %d \n",args[i],i,cpt + num_elements);
-        //   }
+        if (redirections_with_substituions(commandline, &red))
+        {
+            char buf[1000];
+            int nb =read(args[cpt + num_elements - 2],buf,10);
+          
+            args[cpt + num_elements - 3] = NULL;
+            args[cpt + num_elements - 2]= NULL;
+        }
+
+
 
         if (rec == 1)
         {
@@ -841,7 +865,6 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
             close(pipe_tmp[0]);
             close(pipe_tmp[1]);
         }
-
         execvp(commande, args);
         perror("Erreur lors de l'exécution de la commande");
         exit(3);
@@ -896,10 +919,7 @@ int redirections_with_substituions(const char *commandLine, char **extracted)
                     break;
                 }
             }
-            else
-            {
-                break;
-            }
+            
         }
         current++;
     }
