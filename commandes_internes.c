@@ -171,16 +171,44 @@ int fg_commande(struct Job* jobs, int nbr_jobs, char* arg){
         fprintf(stderr, "Le job est en avant plan deja \n");
          return 0; 
     }
-     //le job doit etre running 
-     if (strcmp(job_fg->etat, etat_str[0]) != 0) {
+     //le job doit etre stopped
+     if (strcmp(job_fg->etat, etat_str[1]) != 0) {
         fprintf(stderr, "Le job n'est pas en cours d'exécution\n");
         return 1 ;
     }
 
     //ramener un job en avant plan
-    tcsetpgrp(STDIN_FILENO, getpgid(job_fg->processus[0]));
+   // tcsetpgrp(STDIN_FILENO, getpgid(job_fg->processus[0]));  
+     tcsetpgrp(STDIN_FILENO, job_fg->processus[0]);  
+    if (kill(-job_fg->processus[0], SIGCONT)) {
+        perror("Erreur lors de l'envoi du signal SIGCONT");
+        return 1;
+    }
 
-    waitpid(job_fg->processus[0], NULL, WUNTRACED | WCONTINUED);
+        job_fg->avant=1;
+        int status;
+        pid_t terminated_pid;
+        int bloque = 0 ;
+        while ((terminated_pid = waitpid(-job_fg->processus[0], &status, WUNTRACED)) != -1) {
+
+          if (WIFSTOPPED(status) ) {
+               //printf("Processus enfant avec PID %d s'est arrêté.\n", terminated_pid);
+               job_fg->affiche =1;
+               job_fg->avant=0 ;
+               bloque =1 ;
+                break;  // Arrêter l'attente si un processus est arrêté
+            }
+            else {
+               job_fg->affiche =0; 
+               //job_fg->avant=1
+
+            }
+        }
+        if (!bloque) strcpy(job_fg[0].etat, etat_str[4]); // mettre done 
+
+   // while( waitpid(-job_fg->processus[0], NULL, WUNTRACED ) !=-1);
+   //waitpid(-job_fg->processus[0], NULL, 0 );
+
 
     // Restaurer le contrôle au shell JSH
     tcsetpgrp(STDIN_FILENO, getpgrp());
