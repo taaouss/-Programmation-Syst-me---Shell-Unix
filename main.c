@@ -302,7 +302,7 @@ int main()
                                 new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
                                 strcpy(new_job->etat, etat_str[1]);
                                 new_job->affiche = 1;
-                                new_job->avant = 1;
+                                new_job->avant = 0; /****************************************/
                                 tab_jobs[nb_job] = *new_job;
                                 free(new_job);
                                 nb_job++;

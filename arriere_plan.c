@@ -62,7 +62,7 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[], size_t le
     case 0:
        
         setpgid(getpid(),getpid());
-         reset_signaux_groupe(getpid());
+        reset_signaux_groupe(getpid());//mettre le traitement par defaut des signaux 
         execvp(args[0],args);
         perror("Erreur lors de l'exécution de la commande");
         exit(1); // Valeur de sortie arbitraire en cas d'erreur

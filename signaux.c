@@ -34,6 +34,8 @@ void reset_signaux(){
     sigaction(SIGTTIN, &action, NULL);
     sigaction(SIGTTOU, &action, NULL);
 }
+
+
 void reset_signaux_groupe(pid_t pgid) {
     struct sigaction action;
     memset(&action, 0, sizeof(struct sigaction));

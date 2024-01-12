@@ -409,7 +409,7 @@ void maj_jobs(struct Job* jobs, int nbr_jobs) {
                             // stopped
                             strcpy(jobs[i].etat, etat_str[1]);
                             jobs[i].affiche=1;
-                            jobs[i].avant =1;
+                            jobs[i].avant =0; /**/
 
                         }else{                 
                             //done
