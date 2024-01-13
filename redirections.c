@@ -788,6 +788,12 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
     Redirection *redirections = NULL;
     int nb_redirections = 0;
     int pipes[num_elements][2];
+    for (int i = 0; i < num_elements; i++)
+    {
+       pipes[i][0]=NULL;
+       pipes[i][1]=NULL;
+
+    }
     // for (int i = 0; i < num_elements; i++)
     // {
     //     printf("lyess %s %d \n", elements[i].content, elements[i].type);
@@ -825,8 +831,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                     close(pipes[j][0]); // Fermeture du descripteur de lecture
                     close(pipes[j][1]); // Fermeture du descripteur d'écriture
                 }
-                int lyes;
-                dup2(1, lyes);
+
                 if (dup2(pipes[i][1], 1) == -1)
                 {
                     perror("dup2");
@@ -842,7 +847,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 //  fprintf(stderr, "elements[i + 1].content       %s\n", elements[i + 1].content);
                 if (extract_and_verify_subcommands(elements[i + 1].content, elements_tmp, &nb_elements_tmp, &contains_substitution_tmp))
                 {
-                    // fprintf(stderr, "cattttttttttttttttttttttttttt\n");
+
                     int pipe_tmp[2];
                     if (pipe(pipe_tmp) == -1)
                     {
@@ -851,7 +856,6 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                     }
                     if (!fork())
                     {
-                        dup2(lyes, 1);
                         execute_subcommands(elements_tmp, nb_elements_tmp, pipe_tmp, 1, elements[i + 1].content);
                     }
                     else
