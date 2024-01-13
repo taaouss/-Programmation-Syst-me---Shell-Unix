@@ -371,6 +371,12 @@ void extract_pipe_commands(char *commandline, char *commands[], int *nb_commands
 {
 
     char *commandline_tmp = strdup(commandline);
+    if (commandline_tmp == NULL)
+    {
+        perror("extract_pipe_commands : Erreur lors de l'allocation de mémoire strdup(commandline)");
+        return;
+    }
+
     char *token, *reste = commandline_tmp;
     int i = 0;
 
@@ -400,13 +406,12 @@ void free_elements(CommandElement elements[], int num_elements)
 }
 
 int execute_pipes(char *commandline, char *rep_precedent)
-
 {
     char *pipe_commands[MAX_SUBCOMMANDS];
     int nb_pipe_commands = 0;
     int in_fd = STDIN_FILENO; // Pour le premier pipe, on lit depuis l'entrée standard
-    char *args[NBR_MAX_ARGUMENTS];
-    char *commande;
+    char *args[NBR_MAX_ARGUMENTS] = {NULL};
+    char *commande = NULL;
     int i = 0;
     int index;
     int error_in_redirections = 0;
@@ -417,7 +422,9 @@ int execute_pipes(char *commandline, char *rep_precedent)
     int status_cmd_externe;
 
     extract_pipe_commands(commandline, pipe_commands, &nb_pipe_commands);
+
     int pipefd[2 * (nb_pipe_commands - 1)]; // Tableau pour stocker les descripteurs de fichiers des pipes
+
     for (int j = 0; j < nb_pipe_commands; j++)
     {
         if (j < nb_pipe_commands - 1) // Pas besoin de pipe pour la dernière commande
@@ -451,10 +458,18 @@ int execute_pipes(char *commandline, char *rep_precedent)
                 close(pipefd[j * 2 + 1]);
             }
             // Pour l'instant on duplique le code
+            char *tmp_cmd1 = strdup(pipe_commands[j]);
+            char *tmp_cmd2 = strdup(pipe_commands[j]);
+            extract_args(tmp_cmd1, args, &commande, &tmp_cmd2, &i, strlen(tmp_cmd2));
+            if (tmp_cmd1 != NULL)
+            {
+                free(tmp_cmd1);
+            }
+            if (tmp_cmd2 != NULL)
+            {
+                free(tmp_cmd2);
+            }
 
-            extract_args(strdup(pipe_commands[j]), args, &commande, &pipe_commands[j], &i, strlen(pipe_commands[j]));
-
-            // fprintf(stderr, "commande extraite: %s\n", commande);
             // Vérifier si la commande est une redirection
             index = commandline_is_redirection(pipe_commands[j]);
             error_in_redirections = 0;
@@ -466,7 +481,26 @@ int execute_pipes(char *commandline, char *rep_precedent)
                     error_in_redirections = execute_redirections(redirections, nb_redirections);
                     code_retour = error_in_redirections;
                     pipe_commands[j] = extractCommandAndArgs(pipe_commands[j], index);
-                    extract_args(strdup(pipe_commands[j]), args, &commande, &pipe_commands[j], &i, strlen(pipe_commands[j]));
+
+                    char *tmp_cmd11 = strdup(pipe_commands[j]);
+                    char *tmp_cmd22 = strdup(pipe_commands[j]);
+                    // free args
+                    for (int k = 0; k < NBR_MAX_ARGUMENTS - 1; k++)
+                    {
+                        if (args[k] != NULL)
+                        {
+                            free(args[k]);
+                        }
+                    }
+                    extract_args(tmp_cmd11, args, &commande, &tmp_cmd22, &i, strlen(tmp_cmd22));
+                    if (tmp_cmd11 != NULL)
+                    {
+                        free(tmp_cmd11);
+                    }
+                    if (tmp_cmd22 != NULL)
+                    {
+                        free(tmp_cmd22);
+                    }
                 }
             }
 
@@ -478,7 +512,6 @@ int execute_pipes(char *commandline, char *rep_precedent)
 
             else //(error_in_redirections == 0)
             {
-                // fprintf(stderr, "commande : %s\n", commande);
                 if (strcmp(commande, "pwd") == 0)
                 {
                     if (args[1] == NULL)
@@ -488,7 +521,6 @@ int execute_pipes(char *commandline, char *rep_precedent)
                     }
                     else
                     {
-                        // printf("args[1] = %s\n", args[1]);
                         perror("Commande incorrecte \n");
                         code_retour = 1;
                     }
@@ -508,8 +540,6 @@ int execute_pipes(char *commandline, char *rep_precedent)
                 }
                 else if (strcmp(commande, "cd") == 0)
                 {
-                    // fprintf(stderr, "cd\n");
-                    // fprintf(stderr, "args[1] : %s\n", args[1]);
                     if ((code_retour = cd(args[1], rep_precedent)) != 0)
                         perror("Erreur lors de la commande cd");
                 }
@@ -566,6 +596,9 @@ int execute_pipes(char *commandline, char *rep_precedent)
             // fprintf(stderr, "-----------------------------------------\n");
             // fprintf(stderr, "Processus fils %d execute %s\n", getpid(), pipe_commands[j]);
             // fprintf(stderr, "code_retour de la commande executée par le fils: %d\n", code_retour);
+            // free(commande);
+            // commande = NULL;
+
             exit(code_retour);
         }
         else
@@ -581,9 +614,11 @@ int execute_pipes(char *commandline, char *rep_precedent)
                 in_fd = pipefd[j * 2];
             }
         }
+
         // maj_jobs(tab_jobs, nb_job);
         // jobs_err(tab_jobs, nb_job);
     }
+
     int status;
     for (int i = 0; i < nb_pipe_commands; i++)
     {
@@ -609,12 +644,22 @@ int execute_pipes(char *commandline, char *rep_precedent)
     {
         code_retour = 1;
     }
+
+    for (int k = 0; k < nb_pipe_commands; k++)
+    {
+        free(pipe_commands[k]);
+    }
     return code_retour;
 }
 
 int extract_and_verify_subcommands(char *commandline, CommandElement elements[], int *num_elements, int *contains_substitution)
 {
     char *commandline_tmp = strdup(commandline);
+    if (commandline_tmp == NULL)
+    {
+        perror("extract_subcommand : Erreur lors de l'allocation de mémoire strdup(commandline)");
+        return 0;
+    }
     char *token = strtok(commandline_tmp, " ");
     *num_elements = 0;
     *contains_substitution = 0;
@@ -658,6 +703,13 @@ int extract_and_verify_subcommands(char *commandline, CommandElement elements[],
                     // End of the current subcommand
                     in_subcommand = 0;
                     elements[*num_elements].content = strdup(subcommand);
+                    // use malloc instead of strdup
+
+                    if (elements[*num_elements].content == NULL)
+                    {
+                        perror("extract_subcommand : Erreur lors de l'allocation de mémoire strdup(subcommand)");
+                        return 0;
+                    }
                     elements[*num_elements].type = 1;
                     (*num_elements)++;
                     nested_level = 0;
@@ -667,6 +719,11 @@ int extract_and_verify_subcommands(char *commandline, CommandElement elements[],
             {
                 // Normal case, just store the argument
                 elements[*num_elements].content = strdup(token);
+                if (elements[*num_elements].content == NULL)
+                {
+                    perror("extract_subcommand : Erreur lors de l'allocation de mémoire strdup(token)");
+                    return 0;
+                }
                 elements[*num_elements].type = 0;
                 (*num_elements)++;
             }
@@ -683,6 +740,12 @@ int extract_and_verify_subcommands(char *commandline, CommandElement elements[],
             {
                 // Normal case, store the argument
                 elements[*num_elements].content = strdup(token);
+                if (elements[*num_elements].content == NULL)
+                {
+                    perror("extract_subcommand : Erreur lors de l'allocation de mémoire strdup(token)");
+                    return 0;
+                }
+
                 elements[*num_elements].type = 0;
                 (*num_elements)++;
             }
@@ -695,10 +758,20 @@ int extract_and_verify_subcommands(char *commandline, CommandElement elements[],
     if (in_subcommand)
     {
         elements[*num_elements].content = strdup(subcommand);
+        // verify if null
+        if (elements[*num_elements].content == NULL)
+        {
+            perror("extract_subcommand : Erreur lors de l'allocation de mémoire strdup(subcommand)");
+            return 0;
+        }
         elements[*num_elements].type = 1;
         (*num_elements)++;
     }
-
+    free(commandline_tmp);
+    if (!*contains_substitution)
+    {
+        free_elements(elements, *num_elements);
+    }
     return *contains_substitution;
 }
 
@@ -715,10 +788,10 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
     Redirection *redirections = NULL;
     int nb_redirections = 0;
     int pipes[num_elements][2];
-   // for (int i = 0; i < num_elements; i++)
-   // {
-   //     printf("lyess %s %d \n", elements[i].content, elements[i].type);
-   // }
+    // for (int i = 0; i < num_elements; i++)
+    // {
+    //     printf("lyess %s %d \n", elements[i].content, elements[i].type);
+    // }
 
     // Création des processus fils avec les pipes
     for (int i = 0; i < num_elements - 1; i++)
@@ -726,7 +799,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
 
         if (elements[i + 1].type == 1)
         {
-           // printf("for type 1 %s %d \n", elements[i + 1].content, elements[i + 1].type);
+            // printf("for type 1 %s %d \n", elements[i + 1].content, elements[i + 1].type);
 
             if (pipe(pipes[i]) == -1)
             {
@@ -766,10 +839,10 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 CommandElement elements_tmp[MAX_ELEMENTS];
                 int contains_substitution_tmp = 0;
 
-              //  fprintf(stderr, "elements[i + 1].content       %s\n", elements[i + 1].content);
+                //  fprintf(stderr, "elements[i + 1].content       %s\n", elements[i + 1].content);
                 if (extract_and_verify_subcommands(elements[i + 1].content, elements_tmp, &nb_elements_tmp, &contains_substitution_tmp))
                 {
-                    //fprintf(stderr, "cattttttttttttttttttttttttttt\n");
+                    // fprintf(stderr, "cattttttttttttttttttttttttttt\n");
                     int pipe_tmp[2];
                     if (pipe(pipe_tmp) == -1)
                     {
@@ -803,8 +876,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                         exit(0);
                     }
                 }
-      
-                
+
                 execvp(commande, args);
                 perror("erreur");
             }
@@ -816,15 +888,15 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
         while (wait(NULL) != -1)
         {
         }
-       
 
         for (int i = 0; i < num_elements - 1; i++)
         {
             close(pipes[i][1]); // Descripteur d'ecriture
             if (redirections_with_substituions(commandline, &red))
-        {
-            if (i == num_elements - 2)dup2(pipes[i][0],0);
-        }
+            {
+                if (i == num_elements - 2)
+                    dup2(pipes[i][0], 0);
+            }
         }
         cpt = 0;
         strcpy(cmd_pipe, elements[0].content);
@@ -851,13 +923,11 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
         if (redirections_with_substituions(commandline, &red))
         {
             char buf[1000];
-            int nb =read(args[cpt + num_elements - 2],buf,10);
-          
+            int nb = read(args[cpt + num_elements - 2], buf, 10);
+
             args[cpt + num_elements - 3] = NULL;
-            args[cpt + num_elements - 2]= NULL;
+            args[cpt + num_elements - 2] = NULL;
         }
-
-
 
         if (rec == 1)
         {
@@ -919,7 +989,6 @@ int redirections_with_substituions(const char *commandLine, char **extracted)
                     break;
                 }
             }
-            
         }
         current++;
     }
