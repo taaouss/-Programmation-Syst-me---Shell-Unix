@@ -145,6 +145,11 @@ int main()
             else
             {
                 wait(NULL);
+                for (int i = 0; i < nb_elements; i++)
+                {
+                  if(elements != NULL)  free(elements[i].content);
+                }
+
             }
         }
         else if (commandline_is_pipe(buf_tmp))
