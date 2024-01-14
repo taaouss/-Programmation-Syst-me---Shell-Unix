@@ -198,6 +198,11 @@ int main()
                 }
             }
         }
+        else if (commandline_is_pipe(buf_tmp) == -1)
+        {
+            perror("Erreur lors de la commande pipe");
+            continue;
+        }
         else if (commandline_is_pipe(buf_tmp))
         {
             // 2- Pipe
