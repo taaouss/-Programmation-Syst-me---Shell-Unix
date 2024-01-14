@@ -39,7 +39,7 @@ int jobs(char **argument, int nbr_arguments, struct Job* jobs, int nbr_jobs) {
             if (resultat !=NULL){
                         memmove(resultat, resultat + 1, strlen(resultat));
                         int num_pid = atoi(resultat);
-                        if(jobs[i].processus[0]==num_pid){
+                        if(i+1==num_pid){
                         printf("[%d]\t%d\t%s\t%s\n", jobs[i].numero_job + 1, jobs[i].processus[0], etat,jobs[i].command);
                             if (nbr_arguments >= 2 && strcmp(argument[1],"-t")==0)
                         {
@@ -50,15 +50,16 @@ int jobs(char **argument, int nbr_arguments, struct Job* jobs, int nbr_jobs) {
                             jobs[i].affiche = 0;
                         }
                         break;
-                        }else{
-                            if (getpgid(jobs[i].processus[0]) == getpgid(num_pid))
-                            {
-                               printf("[%d]", jobs[i].numero_job + 1);
-                               get_etat_processe_externe(resultat);
-                               break;
-                            }
-                            
                         }
+                        //else{
+                          //  if (getpgid(jobs[i].processus[0]) == getpgid(num_pid))
+                          //  {
+                          //     printf("[%d]", jobs[i].numero_job + 1);
+                           //    get_etat_processe_externe(resultat);
+                           //    break;
+                           // }
+                            
+                       // }
                         
                 }
 
@@ -93,6 +94,9 @@ int jobs(char **argument, int nbr_arguments, struct Job* jobs, int nbr_jobs) {
     }
     return 0;
 }
+
+
+// a enlever
 void get_etat_processe_externe(char* pid){
     char path[PATH_MAX];
     snprintf(path, PATH_MAX, "/proc/%s/stat", pid);
@@ -247,7 +251,7 @@ int jobs_err(struct Job* jobs, int nbr_jobs) {
     if (jobs == NULL) return 1;
 
     while (i < nbr_jobs) {
-        if ((jobs[nbr_jobs-i-1].affiche == 1))
+        if ((jobs[nbr_jobs-i-1].affiche == 1)&&  jobs[nbr_jobs-i-1].avant == 0)
         {
             
         

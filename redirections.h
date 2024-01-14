@@ -1,6 +1,7 @@
 #ifndef REDIRECTIONS_H
 #define REDIRECTIONS_H
 
+#include "gestion_jobs.h"
 // extern int exit_code;
 
 typedef struct
@@ -42,7 +43,7 @@ int execute_pipes(char *commandline, char *rep_precedent);
 
 int extract_and_verify_subcommands(char *commandline, CommandElement elements[], int *num_elements, int *contains_substitution);
 
-int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tmp[], int rec, char *commandline);
+int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tmp[], int rec, char *commandline, struct Job tab_jobs[], int num_job);
 int redirections_with_substituions(const char *commandLine, char **extracted);
 
 #endif
