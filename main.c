@@ -18,7 +18,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-
 int main()
 {
     // ignorer les signaux par JSH
@@ -140,86 +139,97 @@ int main()
         {
             // 1- Substitution de processus
             /* code */
-            mkfifo("jobs",0666);
+            mkfifo("jobs", 0666);
             int r = fork();
-            
+
             if (!r)
             {
+                setpgid(getpid(), getpid());
                 int pi[2];
-                new_job = creer_jobs(nb_job, r, buf_tmp, 1); // avant d 1
+                new_job = creer_jobs(nb_job, getpid(), buf_tmp, 1); // avant d 1
                 tab_jobs[nb_job] = *new_job;
                 free(new_job);
                 nb_job++;
-                execute_subcommands(elements, nb_elements,pi,0,buf_tmp,tab_jobs,nb_job-1);
-          
+                execute_subcommands(elements, nb_elements, pi, 0, buf_tmp, tab_jobs, nb_job - 1);
+                
             }
             else
             {
 
                 int status;
-                int fd_tube=open("jobs",O_RDONLY);
-                wait(&status);
-                struct Job tab_jobs_tmp[20]; 
-                read(fd_tube,tab_jobs_tmp,sizeof(tab_jobs_tmp));
-                tab_jobs[nb_job]= tab_jobs_tmp[nb_job];
+                //  printf("chaalalla\n");
+                int fd_tube = open("jobs", O_RDONLY | O_NONBLOCK);
+                // printf("chaalalla\n");
+                waitpid(r, &status, WUNTRACED);
+                // wait(&status);
+                // printf("chaalalla\n");
+                struct Job tab_jobs_tmp[20];
+                int nb_car = read(fd_tube, tab_jobs_tmp, sizeof(tab_jobs_tmp));
+                if (nb_car == 110)
+                    tab_jobs[nb_job] = tab_jobs_tmp[nb_job];
+                else{
+                new_job = creer_jobs(nb_job, r, buf_tmp, 1); // avant d 1
+                tab_jobs[nb_job] = *new_job;
+                free(new_job);
+                }
                 nb_job++;
 
-
-                if (WIFEXITED(status))//on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus 
-            {
-                strcpy(  tab_jobs[nb_job-1].etat,etat_str[4]); 
-            }
+                if (WIFSTOPPED(status)) // on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus
+                {
+                    strcpy(tab_jobs[nb_job - 1].etat, etat_str[1]);
+                    tab_jobs[nb_job - 1].affiche = 1;
+                    tab_jobs[nb_job - 1].avant = 0;
+                    jobs_err(tab_jobs, nb_job);
+                }
+                if (WIFEXITED(status)) // on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus
+                {
+                    // printf("lyess\n");
+                    strcpy(tab_jobs[nb_job - 1].etat, etat_str[4]);
+                }
                 for (int i = 0; i < nb_elements; i++)
                 {
-                  if(elements != NULL)  free(elements[i].content);
+                    if (elements != NULL)
+                        free(elements[i].content);
                 }
-
             }
         }
         else if (commandline_is_pipe(buf_tmp))
         {
             // 2- Pipe
-          int r =fork();
-           if (!r)
-           {
-            setpgid(getpid(), getpid());
-
-            execute_pipes(buf_tmp, rep_precedent);
-            
-            exit(0);
-           }else{
-            new_job = creer_jobs(nb_job, r, buf_tmp, 1); // avant d 1
-            tab_jobs[nb_job] = *new_job;
-            free(new_job);
-            nb_job++; 
-            int status;
-             waitpid(r, &status, WUNTRACED);
-             
-             if (WIFSTOPPED(status)) //on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus 
-             {
-                strcpy(tab_jobs[nb_job-1].etat, etat_str[1]);
-                tab_jobs[nb_job-1].affiche=1;
-                tab_jobs[nb_job-1].avant =0; 
-                 jobs_err(tab_jobs, nb_job);
-             }
-            if (WIFEXITED(status))//on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus 
+            int r = fork();
+            if (!r)
             {
-             // printf("lyess\n");
-               strcpy(  tab_jobs[nb_job-1].etat,etat_str[4]); 
+                setpgid(getpid(), getpid());
+                execute_pipes(buf_tmp, rep_precedent);
+                exit(0);
             }
-            
-        
+            else
+            {
+                new_job = creer_jobs(nb_job, r, buf_tmp, 1); // avant d 1
+                tab_jobs[nb_job] = *new_job;
+                free(new_job);
+                nb_job++;
+                int status;
+                waitpid(r, &status, WUNTRACED);
 
+                if (WIFSTOPPED(status)) // on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus
+                {
+                    strcpy(tab_jobs[nb_job - 1].etat, etat_str[1]);
+                    tab_jobs[nb_job - 1].affiche = 1;
+                    tab_jobs[nb_job - 1].avant = 0;
+                    jobs_err(tab_jobs, nb_job);
+                }
+                if (WIFEXITED(status)) // on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus
+                {
+                    // printf("lyess\n");
+                    strcpy(tab_jobs[nb_job - 1].etat, etat_str[4]);
+                }
             }
-           
-            
-    
-           
-            
-            //strcpy(tab_jobs[nb_job-1].etat,etat_str[3]);
-          //  tab_jobs[nb_job-1].avant = 1;
-          //  tab_jobs[nb_job-1].affiche=0;
-            
+
+            // strcpy(tab_jobs[nb_job-1].etat,etat_str[3]);
+            //  tab_jobs[nb_job-1].avant = 1;
+            //  tab_jobs[nb_job-1].affiche=0;
+
             // cette fonction est la duplication des commandes du main en attendant de faire une fonction
             // qui prend en paramètre la commande et les arguments et qui exécute la commande
         }

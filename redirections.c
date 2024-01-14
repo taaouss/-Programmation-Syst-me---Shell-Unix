@@ -829,8 +829,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
             { // Processus fils
                 // Fermeture des pipes inutiles
                 setpgid(getppid(), getppid());
-                tab_jobs[num_job].processus[tab_jobs[num_job].nbr_processus] = getpid();
-                tab_jobs[num_job].nbr_processus = tab_jobs[num_job].nbr_processus + 1;
+                
                 //  printf("lyessspid2 \n");
                 for (int j = 0; j < i; j++)
                 {
@@ -889,15 +888,19 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
 
                 execvp(commande, args);
                 perror("erreur");
+            }else{
+                tab_jobs[num_job].processus[tab_jobs[num_job].nbr_processus] = pid;
+                tab_jobs[num_job].nbr_processus = tab_jobs[num_job].nbr_processus + 1;
             }
         }
     }
     if (pid != 0)
     {
 
-        while (wait(NULL) != -1)
-        {
-        }
+      // while (wait(NULL) != -1)
+     //  {
+     //  }
+        
 
         for (int i = 0; i < num_elements - 1; i++)
         {
@@ -952,6 +955,34 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
             close(fd_tube);
           //  printf("hiiiiiiiiiii\n");
         }
+        char cmd_line_tmp[PATH_MAX];
+        int pipe_line =0;
+          for (int i = 0; i <= cpt + num_elements -1; i++)
+        {
+              // printf("lyess %s \n",args[i]);
+              if (args[i]==NULL)
+              {
+                break;
+              }
+              if (i ==0) {strcpy(cmd_line_tmp,args[i]);
+              strcat(cmd_line_tmp," ");
+              }else{
+                strcat(cmd_line_tmp,args[i]);
+                strcat(cmd_line_tmp," ");
+              }
+             if ((args[i])[0]== '|')
+               {
+                pipe_line =1;
+               }
+               
+        }
+        if (pipe_line)
+        {
+            //printf("lyessssss %s \n",cmd_line_tmp);
+            execute_pipes(cmd_line_tmp,NULL);
+            exit(0);
+        }
+        
         execvp(commande, args);
         perror("Erreur lors de l'exécution de la commande");
         exit(3);
