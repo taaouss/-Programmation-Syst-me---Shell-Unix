@@ -1,8 +1,7 @@
 #ifndef REDIRECTIONS_H
 #define REDIRECTIONS_H
 
-#include "gestion_jobs.h"
-// extern int exit_code;
+#include "gestion_jobs.h" // pour les variables globales declarees dans gestion_jobs.h
 
 typedef struct
 {
@@ -36,13 +35,9 @@ void reset_redirections(int stdin_copy, int stdout_copy, int stderr_copy);
 int execute_redirections(Redirection *redirections, int nb_redirections);
 int commandline_is_pipe(char *commandline);
 void extract_pipe_commands(char *commandline, char *commands[], int *nb_commands);
-// void free_subcommands(char *subcommands[], int num_subcommands);
-// int extract_and_verify_subcommands(char *commandline, char *subcommands[], int *num_subcommands, int *is_really_substitution);
 void free_elements(CommandElement elements[], int num_elements);
 int execute_pipes(char *commandline, char *rep_precedent);
-
 int extract_and_verify_subcommands(char *commandline, CommandElement elements[], int *num_elements, int *contains_substitution);
-
 int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tmp[], int rec, char *commandline, struct Job tab_jobs[], int num_job);
 int redirections_with_substituions(const char *commandLine, char **extracted);
 int execute_commande(char *commandline);
