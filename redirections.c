@@ -354,7 +354,8 @@ int commandline_is_pipe(char *commandline)
             if ((token = strtok(NULL, " ")) == NULL || strcmp(token, "|") == 0)
             {
                 free(commandline_tmp);
-                return 0;
+                perror("Erreur : pipe mal formé");
+                return -1;
             }
             code_retour = 1;
         }
