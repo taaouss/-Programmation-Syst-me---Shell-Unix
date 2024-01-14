@@ -452,6 +452,7 @@ int execute_pipes(char *commandline, char *rep_precedent)
                 dup2(pipefd[j * 2 + 1], 1);
                 close(pipefd[j * 2 + 1]);
             }
+            // Executer la commande
             code_retour = execute_commande(pipe_commands[j]);
             exit(code_retour);
         }
