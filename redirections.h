@@ -45,5 +45,6 @@ int extract_and_verify_subcommands(char *commandline, CommandElement elements[],
 
 int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tmp[], int rec, char *commandline, struct Job tab_jobs[], int num_job);
 int redirections_with_substituions(const char *commandLine, char **extracted);
+int execute_commande(char *commandline);
 
 #endif
