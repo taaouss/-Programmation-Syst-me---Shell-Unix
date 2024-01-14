@@ -131,31 +131,29 @@ int main()
                 code_retour = 1;
             }
 
-            // mettre en arriere plan
+            // mettre en arriere plan // on verfie meme si il y a des substitution et les pipeline
             code_retour = cmdArrierePlan(args, nb_job, tab_jobs, len, buf_tmp);
             nb_job++;
         }
+        // si il y as des substitution
         else if ((contains_substitution = extract_and_verify_subcommands(buf_tmp, elements, &nb_elements, &contains_substitution)))
         {
             // 1- Substitution de processus
-            /* code */
-            mkfifo("jobs", 0666);
+            mkfifo("jobs", 0666); // pour synchoniser tab_job entre le pere et le fils
             int r = fork();
 
             if (!r)
             {
                 setpgid(getpid(), getpid());
                 int pi[2];
-                new_job = creer_jobs(nb_job, getpid(), buf_tmp, 1); // avant d 1
+                new_job = creer_jobs(nb_job, getpid(), buf_tmp, 1); // 1 pour avant plan
                 tab_jobs[nb_job] = *new_job;
                 free(new_job);
                 nb_job++;
                 execute_subcommands(elements, nb_elements, pi, 0, buf_tmp, tab_jobs, nb_job - 1);
-                
             }
             else
             {
-
                 int status;
                 new_job = creer_jobs(nb_job, r, buf_tmp, 1); // avant d 1
                 tab_jobs[nb_job] = *new_job;
@@ -163,21 +161,9 @@ int main()
                 nb_job++;
 
                 int fd_tube = open("jobs", O_RDONLY | O_NONBLOCK);
-                // printf("chaalalla\n");
                 waitpid(r, &status, WUNTRACED);
-                // wait(&status);
-                // printf("chaalalla\n");
                 struct Job tab_jobs_tmp[20];
-                
-                int nb_car = read(fd_tube, tab_jobs_tmp, sizeof(tab_jobs_tmp));
-               /* if (nb_car == 110)
-                    tab_jobs[nb_job] = tab_jobs_tmp[nb_job];
-                else{
-                new_job = creer_jobs(nb_job, r, buf_tmp, 1); // avant d 1
-                tab_jobs[nb_job] = *new_job;
-                free(new_job);
-                }
-              nb_job++;*/
+                read(fd_tube, tab_jobs_tmp, sizeof(tab_jobs_tmp));
 
                 if (WIFSTOPPED(status)) // on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus
                 {
@@ -188,7 +174,6 @@ int main()
                 }
                 if (WIFEXITED(status)) // on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus
                 {
-                    // printf("lyess\n");
                     strcpy(tab_jobs[nb_job - 1].etat, etat_str[4]);
                 }
                 for (int i = 0; i < nb_elements; i++)
@@ -203,24 +188,25 @@ int main()
             perror("Erreur lors de la commande pipe");
             continue;
         }
+        // on verfie si il ya des pipeline
         else if (commandline_is_pipe(buf_tmp))
         {
             // 2- Pipe
             int r = fork();
-            if (!r)
+            if (!r) // fils
             {
-                setpgid(getpid(), getpid());
+                setpgid(getpid(), getpid()); // pour changer son groupe puisque c'est lui le leader du job
                 execute_pipes(buf_tmp, rep_precedent);
                 exit(0);
             }
-            else
+            else // pere
             {
-                new_job = creer_jobs(nb_job, r, buf_tmp, 1); // avant d 1
+                new_job = creer_jobs(nb_job, r, buf_tmp, 1); // 1 pour avant plan
                 tab_jobs[nb_job] = *new_job;
                 free(new_job);
                 nb_job++;
                 int status;
-                waitpid(r, &status, WUNTRACED);
+                waitpid(r, &status, WUNTRACED); // attante blaquante
 
                 if (WIFSTOPPED(status)) // on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus
                 {
@@ -231,17 +217,9 @@ int main()
                 }
                 if (WIFEXITED(status)) // on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus
                 {
-                    // printf("lyess\n");
                     strcpy(tab_jobs[nb_job - 1].etat, etat_str[4]);
                 }
             }
-
-            // strcpy(tab_jobs[nb_job-1].etat,etat_str[3]);
-            //  tab_jobs[nb_job-1].avant = 1;
-            //  tab_jobs[nb_job-1].affiche=0;
-
-            // cette fonction est la duplication des commandes du main en attendant de faire une fonction
-            // qui prend en paramètre la commande et les arguments et qui exécute la commande
         }
         else
         {
@@ -388,10 +366,10 @@ int main()
                             int recu = WSTOPSIG(status);
                             if (recu == 19 || recu == 20)
                             {
-                                new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // avant d 1
+                                new_job = creer_jobs(nb_job, pid, buf_tmp, 1); // 1 signifie que le job en avant plan
                                 strcpy(new_job->etat, etat_str[1]);
                                 new_job->affiche = 1;
-                                new_job->avant = 0; /****************************************/
+                                new_job->avant = 0;
                                 tab_jobs[nb_job] = *new_job;
                                 free(new_job);
                                 nb_job++;
@@ -404,8 +382,8 @@ int main()
                 }
             }
 
-            maj_jobs(tab_jobs, nb_job);
-            jobs_err(tab_jobs, nb_job);
+            maj_jobs(tab_jobs, nb_job); // mise a jour des etats des jobs
+            jobs_err(tab_jobs, nb_job); // pour laffichage des jobs qui ont changé d'etat
         }
 
         // Libérer la mémoire allouée pour les arguments
@@ -416,9 +394,6 @@ int main()
 
         // Libérer la mémoire allouée pour la commande
         free(buf);
-
-        // free(commande);
-        // free(redirections);
 
         reset_redirections(stdin_copy, stdout_copy, stderr_copy);
     }

@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include "signaux.h"
-
+#include "redirections.h"
 
 // verifie si la cmd est en arriere plan
 int is_cmdArrierePlan(char **args,int nb_args) {
@@ -67,7 +67,26 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[], size_t le
        
         setpgid(getpid(),getpid());  // changment du groupe pour le job
         reset_signaux_groupe(getpid());//mettre le traitement par defaut des signaux 
-        execvp(args[0],args);
+       // printf("lyess %s \n",chaine);
+        CommandElement elements[MAX_ELEMENTS];
+        int contains_substitution = 0;
+        int nb_elements = 0;
+        
+        if ((extract_and_verify_subcommands(chaine, elements, &nb_elements, &contains_substitution)))// on verfie si il y a une substitution 
+        {
+            int pi[2];
+            execute_subcommands(elements, nb_elements, pi, 0, chaine, tab_jobs, nombre_jobs - 1);
+            exit(0);
+        }
+        else if (commandline_is_pipe(chaine)){ // on verifie si il y a des pipe line
+            execute_pipes(chaine, NULL);
+            exit(0);
+        }
+
+
+
+        
+        else execvp(args[0],args); // si il y as ni substitution ni pipeline
         perror("Erreur lors de l'exécution de la commande");
         exit(1); // Valeur de sortie arbitraire en cas d'erreur
     break;

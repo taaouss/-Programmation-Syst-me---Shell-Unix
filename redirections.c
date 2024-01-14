@@ -419,8 +419,8 @@ int execute_pipes(char *commandline, char *rep_precedent)
     int nb_redirections = 0;
     int code_retour = 0;
     Redirection *redirections;
-    pid_t pid;
-    int status_cmd_externe;
+    //pid_t pid;
+    //int status_cmd_externe;
 
     extract_pipe_commands(commandline, pipe_commands, &nb_pipe_commands);
 
