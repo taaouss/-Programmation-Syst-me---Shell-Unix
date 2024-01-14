@@ -157,22 +157,27 @@ int main()
             {
 
                 int status;
-                //  printf("chaalalla\n");
+                new_job = creer_jobs(nb_job, r, buf_tmp, 1); // avant d 1
+                tab_jobs[nb_job] = *new_job;
+                free(new_job);
+                nb_job++;
+
                 int fd_tube = open("jobs", O_RDONLY | O_NONBLOCK);
                 // printf("chaalalla\n");
                 waitpid(r, &status, WUNTRACED);
                 // wait(&status);
                 // printf("chaalalla\n");
                 struct Job tab_jobs_tmp[20];
+                
                 int nb_car = read(fd_tube, tab_jobs_tmp, sizeof(tab_jobs_tmp));
-                if (nb_car == 110)
+               /* if (nb_car == 110)
                     tab_jobs[nb_job] = tab_jobs_tmp[nb_job];
                 else{
                 new_job = creer_jobs(nb_job, r, buf_tmp, 1); // avant d 1
                 tab_jobs[nb_job] = *new_job;
                 free(new_job);
                 }
-                nb_job++;
+              nb_job++;*/
 
                 if (WIFSTOPPED(status)) // on peut pas le mettre a jour avec la method maj_job car le processus avec le pid r va etre desparetre et supprimer de la table de processus
                 {
