@@ -547,67 +547,14 @@ int execute_pipes(char *commandline, char *rep_precedent)
                 else
                 {
                     execvp(commande, args);
-                    // Créer un nouveau processus pour exécuter la commande externe
-                    /*
-                    pid = fork();
-
-                    switch (pid)
-                    {
-                    case -1:
-                        perror("Erreur lors de la création du processus fils");
-                        break;
-                    case 0:
-                        // Code du processus fils : exécuter la commande externe
-                        //setpgid(getpid(), getpid()); // Mettre le processus fils dans un nouveau groupe de processus
-                      // reset_signaux_groupe(getpid());
-                        execvp(commande, args);
-                        perror("Erreur lors de l'exécution de la commande");
-                        exit(3); // Valeur de sortie arbitraire en cas d'erreur
-                        break;
-                    default:
-                        // Code du processus parent : attendre que le processus fils se termine
-                       // tcsetpgrp(STDIN_FILENO, pid);
-                        do
-                        {
-                            waitpid(pid, &status_cmd_externe, WUNTRACED | WCONTINUED);
-                        } while (!(WIFEXITED(status_cmd_externe)) && !(WIFSIGNALED(status_cmd_externe)) && !(WIFSTOPPED(status_cmd_externe)) && !(WIFCONTINUED(status_cmd_externe)));
-
-                        // Restaurer le contrôle au shell JSH
-                      //  tcsetpgrp(STDIN_FILENO, getpgrp());
-
-                        if (WIFSTOPPED(status_cmd_externe))
-                        {
-                            // int recu = WSTOPSIG(status_cmd_externe);
-                            // if (recu == 19 || recu == 20)
-                            // {
-                            //     new_job = creer_jobs(nb_job, pid, pipe_commands[j], args, 1);
-                            //     strcpy(new_job->etat, etat_str[1]);
-                            //     new_job->affiche = 1;
-                            //     new_job->avant = 1;
-                            //     tab_jobs[nb_job] = *new_job;
-                            //     free(new_job);
-                            //     nb_job++;
-                            // }
-                        }
-
-                        code_retour = WEXITSTATUS(status_cmd_externe);
-                        break;
-                    }
-
-                    */
                 }
             }
-            // fprintf(stderr, "-----------------------------------------\n");
-            // fprintf(stderr, "Processus fils %d execute %s\n", getpid(), pipe_commands[j]);
-            // fprintf(stderr, "code_retour de la commande executée par le fils: %d\n", code_retour);
-            // free(commande);
-            // commande = NULL;
 
             exit(code_retour);
         }
         else
         {
-           setpgid(getpid(), getpid());
+            setpgid(getpid(), getpid());
             if (in_fd != STDIN_FILENO)
             {
                 close(in_fd);
@@ -619,9 +566,6 @@ int execute_pipes(char *commandline, char *rep_precedent)
                 in_fd = pipefd[j * 2];
             }
         }
-
-        // maj_jobs(tab_jobs, nb_job);
-        // jobs_err(tab_jobs, nb_job);
     }
 
     int status;
@@ -674,41 +618,39 @@ int extract_and_verify_subcommands(char *commandline, CommandElement elements[],
 
     while (token != NULL && *num_elements < MAX_ELEMENTS)
     {
-        if (strcmp(token, "<(") == 0)
+        if (strcmp(token, "<(") == 0) // debut d'une substitution
         {
             if (in_subcommand)
             {
-                // Nested subcommand
+                // substution imbriquer
                 nested_level++;
                 strcat(subcommand, " ");
                 strcat(subcommand, token);
             }
             else
             {
-                // Start of a new subcommand
+                // nouvelle substitution
                 in_subcommand = 1;
                 (*contains_substitution) = 1;
                 subcommand[0] = '\0';
-                // strcat(subcommand, token);
             }
         }
-        else if (strcmp(token, ")") == 0)
+        else if (strcmp(token, ")") == 0) // fin de substitution
         {
             if (in_subcommand)
             {
-                if (nested_level > 0)
+                if (nested_level > 0) // substitution imbriquer fin
                 {
-                    // Inside a nested subcommand
+
                     nested_level--;
                     strcat(subcommand, " ");
                     strcat(subcommand, token);
                 }
-                else
+                else // fin de toutes les substitution imbriquer
                 {
-                    // End of the current subcommand
+
                     in_subcommand = 0;
                     elements[*num_elements].content = strdup(subcommand);
-                    // use malloc instead of strdup
 
                     if (elements[*num_elements].content == NULL)
                     {
@@ -720,16 +662,16 @@ int extract_and_verify_subcommands(char *commandline, CommandElement elements[],
                     nested_level = 0;
                 }
             }
-            else
+            else // cas pas de substution
             {
-                // Normal case, just store the argument
+
                 elements[*num_elements].content = strdup(token);
                 if (elements[*num_elements].content == NULL)
                 {
                     perror("extract_subcommand : Erreur lors de l'allocation de mémoire strdup(token)");
                     return 0;
                 }
-                elements[*num_elements].type = 0;
+                elements[*num_elements].type = 0; // 0 indique que pas de substitution
                 (*num_elements)++;
             }
         }
@@ -737,13 +679,13 @@ int extract_and_verify_subcommands(char *commandline, CommandElement elements[],
         {
             if (in_subcommand)
             {
-                // Inside a subcommand, concatenate elements
+                // interiere de la substitution
                 strcat(subcommand, subcommand[0] != '\0' ? " " : "");
                 strcat(subcommand, token);
             }
             else
             {
-                // Normal case, store the argument
+                // cas pas de substitution
                 elements[*num_elements].content = strdup(token);
                 if (elements[*num_elements].content == NULL)
                 {
@@ -759,7 +701,7 @@ int extract_and_verify_subcommands(char *commandline, CommandElement elements[],
         token = strtok(NULL, " ");
     }
 
-    // If the last element is a subcommand, add it to the list
+    // pour le derniere element
     if (in_subcommand)
     {
         elements[*num_elements].content = strdup(subcommand);
@@ -790,26 +732,18 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
     char cmd_pipe[PATH_MAX];
     char *red = NULL;
     pid_t pid;
-    // Redirection *redirections = NULL;
-    // int nb_redirections = 0;
     int pipes[num_elements][2];
-    for (int i = 0; i < num_elements; i++)
+    for (int i = 0; i < num_elements; i++) // intialisation des pipe
     {
         pipes[i][0] = -1;
-       pipes[i][1] = -1;
+        pipes[i][1] = -1;
     }
-    // for (int i = 0; i < num_elements; i++)
-    // {
-    //     printf("lyess %s %d \n", elements[i].content, elements[i].type);
-    // }
-
     // Création des processus fils avec les pipes
     for (int i = 0; i < num_elements - 1; i++)
     {
 
-        if (elements[i + 1].type == 1)
+        if (elements[i + 1].type == 1) // si la commande contient des substitution
         {
-            // printf("for type 1 %s %d \n", elements[i + 1].content, elements[i + 1].type);
 
             if (pipe(pipes[i]) == -1)
             {
@@ -825,31 +759,31 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 exit(EXIT_FAILURE);
             }
 
-            if (pid == 0)
-            { // Processus fils
-                // Fermeture des pipes inutiles
-                setpgid(getppid(), getppid());
+            if (pid == 0)// Processus fils
+            { 
                 
-                //  printf("lyessspid2 \n");
+                setpgid(getppid(), getppid());// ajouter au groupe du pere 
+
+                // Fermeture des pipes inutiles
                 for (int j = 0; j < i; j++)
                 {
                     close(pipes[j][0]); // Fermeture du descripteur de lecture
                     close(pipes[j][1]); // Fermeture du descripteur d'écriture
                 }
 
-                if (dup2(pipes[i][1], 1) == -1)
+                if (dup2(pipes[i][1], 1) == -1) // rederiger la sortie standard vers le tube
                 {
                     perror("dup2");
                     return 1;
                 }
 
-                close(pipes[i][0]);
+                // fermeture de tube puisque on rediriger la sortie standards
+                close(pipes[i][0]); 
                 close(pipes[i][1]);
                 int nb_elements_tmp = 0;
                 CommandElement elements_tmp[MAX_ELEMENTS];
                 int contains_substitution_tmp = 0;
-
-                //  fprintf(stderr, "elements[i + 1].content       %s\n", elements[i + 1].content);
+                // verification si il y a des substution imbriqué
                 if (extract_and_verify_subcommands(elements[i + 1].content, elements_tmp, &nb_elements_tmp, &contains_substitution_tmp))
                 {
 
@@ -859,36 +793,35 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                         perror("pipe");
                         exit(EXIT_FAILURE);
                     }
-                    if (!fork())
+                    if (!fork()) // pour faire l'appel recursive de execute_subcommands sur les substitution imbriqué
                     {
                         execute_subcommands(elements_tmp, nb_elements_tmp, pipe_tmp, 1, elements[i + 1].content, tab_jobs, num_job);
                     }
                     else
-                        wait(NULL);
+                        wait(NULL);// attante bloquante des substution imbriqué
                     close(pipe_tmp[1]);
                     strcpy(cmd_pipe, elements[i + 1].content);
                     extract_args(cmd_pipe, args, &commande, &buf_tmp, &cpt, len);
-                    // free(cmd_pipe);
-
+                    // pour avoir le resulat resulat final de la substitution imbriquer
                     snprintf(args[1], sizeof(pipe_tmp[0]) + 9, "/dev/fd/%d", pipe_tmp[0]);
                     args[2] = NULL;
                 }
-                else
+                else // si il y a pas de substitution imbriqué
                 {
                     strcpy(cmd_pipe, elements[i + 1].content);
                     extract_args(cmd_pipe, args, &commande, &buf_tmp, &cpt, len);
-                    if (commandline_is_pipe(elements[i + 1].content))
+                    if (commandline_is_pipe(elements[i + 1].content)) // verification si elle contient des pipe line 
                     {
-                        // 2- Pipe
                         execute_pipes(elements[i + 1].content, commandline);
-                        // fprintf(stderr, "fin \n");
                         exit(0);
                     }
                 }
-
+                // executer le commande pour ecrire dans le tube
                 execvp(commande, args);
                 perror("erreur");
-            }else{
+            }
+            else
+            {// mise a jour du tableau des jobs
                 tab_jobs[num_job].processus[tab_jobs[num_job].nbr_processus] = pid;
                 tab_jobs[num_job].nbr_processus = tab_jobs[num_job].nbr_processus + 1;
             }
@@ -897,15 +830,10 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
     if (pid != 0)
     {
 
-      // while (wait(NULL) != -1)
-     //  {
-     //  }
-        
-
-        for (int i = 0; i < num_elements - 1; i++)
+        for (int i = 0; i < num_elements - 1; i++) // fermeture des tube en ecriture
         {
             close(pipes[i][1]); // Descripteur d'ecriture
-            if (redirections_with_substituions(commandline, &red))
+            if (redirections_with_substituions(commandline, &red)) // si il contient des redirection 
             {
                 if (i == num_elements - 2)
                     dup2(pipes[i][0], 0);
@@ -913,8 +841,9 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
         }
         cpt = 0;
         strcpy(cmd_pipe, elements[0].content);
-        extract_args(elements[0].content, args, &commande, &buf_tmp, &cpt, len);
-        for (int i = 0; i < num_elements - 1; i++)
+        extract_args(elements[0].content, args, &commande, &buf_tmp, &cpt, len); // extraire la commande et les argument dans un tableau
+        for (int i = 0; i < num_elements - 1; i++) // pour modifie les arrgument qui contient des substitution en donnant 
+        //leur path a la place 
         {
             args[i + cpt] = NULL;
             if (args[i + cpt] == NULL)
@@ -922,7 +851,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 args[i + cpt] = malloc(sizeof(pipes[i][0]) + 9);
             }
 
-            if (elements[i + 1].type == 1)
+            if (elements[i + 1].type == 1) // si la commande contient une substitution
             {
                 snprintf(args[i + cpt], sizeof(pipes[i][0]) + 9, "/dev/fd/%d", pipes[i][0]);
             }
@@ -931,58 +860,56 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 strcpy(args[i + cpt], elements[i + 1].content);
             }
         }
-        args[cpt + num_elements - 1] = NULL;
+        args[cpt + num_elements - 1] = NULL; // pour que le taableau passer pour exec termine par NULL
 
-        if (redirections_with_substituions(commandline, &red))
+        if (redirections_with_substituions(commandline, &red)) // si il contient des redirection
         {
-            // char buf[1000];
-            // int nb = read(args[cpt + num_elements - 2], buf, 10);
-
-            args[cpt + num_elements - 3] = NULL;
-            args[cpt + num_elements - 2] = NULL;
+            args[cpt + num_elements - 3] = NULL;// on enleve "<"
+            args[cpt + num_elements - 2] = NULL; // on onleve le chemin de la redirection puisque on deja rederiger l'entrer standards
         }
 
-        if (rec == 1)
+        if (rec == 1) // si la fonction est appeler recursivment
         {
-            dup2(pipe_tmp[1], 1);
+            dup2(pipe_tmp[1], 1); // rediriger la sortie vers le tube passer en parametre
             close(pipe_tmp[0]);
             close(pipe_tmp[1]);
         }
-        else{
-            int fd_tube=open("jobs",O_WRONLY);
-           // write(fd_tube,1,sizeof(int));
-            write(fd_tube,tab_jobs,sizeof(tab_jobs));
+        else
+        {
+            int fd_tube = open("jobs", O_WRONLY); // pour metre a jour le tableau des jobs
+            write(fd_tube, tab_jobs, sizeof(tab_jobs));
             close(fd_tube);
-          //  printf("hiiiiiiiiiii\n");
         }
         char cmd_line_tmp[PATH_MAX];
-        int pipe_line =0;
-          for (int i = 0; i <= cpt + num_elements -1; i++)
+        int pipe_line = 0;
+        for (int i = 0; i <= cpt + num_elements - 1; i++) // pour verifie si la commande contient des pipe line
         {
-              // printf("lyess %s \n",args[i]);
-              if (args[i]==NULL)
-              {
+            if (args[i] == NULL)
+            {
                 break;
-              }
-              if (i ==0) {strcpy(cmd_line_tmp,args[i]);
-              strcat(cmd_line_tmp," ");
-              }else{
-                strcat(cmd_line_tmp,args[i]);
-                strcat(cmd_line_tmp," ");
-              }
-             if ((args[i])[0]== '|')
-               {
-                pipe_line =1;
-               }
-               
+            }
+            if (i == 0)
+            {
+                strcpy(cmd_line_tmp, args[i]);
+                strcat(cmd_line_tmp, " ");
+            }
+            else
+            {
+                strcat(cmd_line_tmp, args[i]);
+                strcat(cmd_line_tmp, " ");
+            }
+            if ((args[i])[0] == '|')
+            {
+                pipe_line = 1;
+            }
         }
-        if (pipe_line)
+        if (pipe_line) // appel de la fonction des pipe line pour execter puisque on a remplcer toutes les substitution
+        // par le chemin et on bien fait attention a ne pas fermer les bon discripteur des tubes 
         {
-            //printf("lyessssss %s \n",cmd_line_tmp);
-            execute_pipes(cmd_line_tmp,NULL);
+            execute_pipes(cmd_line_tmp, NULL);
             exit(0);
         }
-        
+
         execvp(commande, args);
         perror("Erreur lors de l'exécution de la commande");
         exit(3);
@@ -991,6 +918,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
     return 1;
 }
 
+// traitment des chaine de caractere pour verifie si la cmd contient des redirection
 int redirections_with_substituions(const char *commandLine, char **extracted)
 {
     const char *current = commandLine;

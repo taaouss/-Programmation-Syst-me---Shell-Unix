@@ -10,6 +10,7 @@
 #include "signaux.h"
 
 
+// verifie si la cmd est en arriere plan
 int is_cmdArrierePlan(char **args,int nb_args) {
     if (nb_args== 1)
     {
@@ -21,6 +22,8 @@ int is_cmdArrierePlan(char **args,int nb_args) {
         else return 0;
     }
 }
+// fonction de traitment de chaine de caractere  pour enlver le dernier argument utliser pour un cmd qui termine par &
+
 void enlever_dernier_caractere(char *chaine) {
     // Vérifiez que la chaîne n'est pas vide
     size_t longueur = strlen(chaine);
@@ -30,6 +33,7 @@ void enlever_dernier_caractere(char *chaine) {
     }
 }
 
+// fonction de traitment des argument et chaine de caractere  pour enlver le dernier argument utliser pour un cmd qui termine par &
 int modifie_args(char **args, int nb_args,char **chaine){
    enlever_dernier_caractere(*chaine);
     if (nb_args== 1)
@@ -61,7 +65,7 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[], size_t le
     
     case 0:
        
-        setpgid(getpid(),getpid());
+        setpgid(getpid(),getpid());  // changment du groupe pour le job
         reset_signaux_groupe(getpid());//mettre le traitement par defaut des signaux 
         execvp(args[0],args);
         perror("Erreur lors de l'exécution de la commande");
@@ -75,8 +79,8 @@ int cmdArrierePlan (char **args,int nombre_jobs,struct Job tab_jobs[], size_t le
             chaine[len - 2]='\0';
             }
         
-        job = creer_jobs(nombre_jobs, r ,chaine,0);
-        tab_jobs[nombre_jobs]= *job;
+        job = creer_jobs(nombre_jobs, r ,chaine,0);// creation du structure du job 
+        tab_jobs[nombre_jobs]= *job; // mise a jour du tableau des jobs
         free(job);
         fprintf(stderr,"[%d]\t%d\tRunning\t%s\n",tab_jobs[nombre_jobs].numero_job + 1,tab_jobs[nombre_jobs].processus[0], tab_jobs[nombre_jobs].command);
         return 0;
