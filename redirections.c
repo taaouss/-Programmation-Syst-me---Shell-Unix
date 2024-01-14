@@ -444,6 +444,7 @@ int execute_pipes(char *commandline, char *rep_precedent)
 
         else if (pipe_pid == 0)
         {
+            setpgid(getppid(), getppid());
             // printf("Processus fils %d\n", getpid());
             if (in_fd != 0) // Si ce n'est pas la première commande
             {
@@ -545,8 +546,9 @@ int execute_pipes(char *commandline, char *rep_precedent)
                 }
                 else
                 {
+                    execvp(commande, args);
                     // Créer un nouveau processus pour exécuter la commande externe
-
+                    /*
                     pid = fork();
 
                     switch (pid)
@@ -556,22 +558,22 @@ int execute_pipes(char *commandline, char *rep_precedent)
                         break;
                     case 0:
                         // Code du processus fils : exécuter la commande externe
-                        setpgid(getpid(), getpid()); // Mettre le processus fils dans un nouveau groupe de processus
-                        reset_signaux_groupe(getpid());
+                        //setpgid(getpid(), getpid()); // Mettre le processus fils dans un nouveau groupe de processus
+                      // reset_signaux_groupe(getpid());
                         execvp(commande, args);
                         perror("Erreur lors de l'exécution de la commande");
                         exit(3); // Valeur de sortie arbitraire en cas d'erreur
                         break;
                     default:
                         // Code du processus parent : attendre que le processus fils se termine
-                        tcsetpgrp(STDIN_FILENO, pid);
+                       // tcsetpgrp(STDIN_FILENO, pid);
                         do
                         {
                             waitpid(pid, &status_cmd_externe, WUNTRACED | WCONTINUED);
                         } while (!(WIFEXITED(status_cmd_externe)) && !(WIFSIGNALED(status_cmd_externe)) && !(WIFSTOPPED(status_cmd_externe)) && !(WIFCONTINUED(status_cmd_externe)));
 
                         // Restaurer le contrôle au shell JSH
-                        tcsetpgrp(STDIN_FILENO, getpgrp());
+                      //  tcsetpgrp(STDIN_FILENO, getpgrp());
 
                         if (WIFSTOPPED(status_cmd_externe))
                         {
@@ -591,6 +593,8 @@ int execute_pipes(char *commandline, char *rep_precedent)
                         code_retour = WEXITSTATUS(status_cmd_externe);
                         break;
                     }
+
+                    */
                 }
             }
             // fprintf(stderr, "-----------------------------------------\n");
@@ -603,6 +607,7 @@ int execute_pipes(char *commandline, char *rep_precedent)
         }
         else
         {
+           setpgid(getpid(), getpid());
             if (in_fd != STDIN_FILENO)
             {
                 close(in_fd);
@@ -775,7 +780,7 @@ int extract_and_verify_subcommands(char *commandline, CommandElement elements[],
     return *contains_substitution;
 }
 
-int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tmp[], int rec, char *commandline)
+int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tmp[], int rec, char *commandline, struct Job tab_jobs[], int num_job)
 {
 
     char *args[NBR_MAX_ARGUMENTS];
@@ -785,14 +790,13 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
     char cmd_pipe[PATH_MAX];
     char *red = NULL;
     pid_t pid;
-    Redirection *redirections = NULL;
-    int nb_redirections = 0;
+    // Redirection *redirections = NULL;
+    // int nb_redirections = 0;
     int pipes[num_elements][2];
     for (int i = 0; i < num_elements; i++)
     {
-       pipes[i][0]=NULL;
-       pipes[i][1]=NULL;
-
+        pipes[i][0] = -1;
+       pipes[i][1] = -1;
     }
     // for (int i = 0; i < num_elements; i++)
     // {
@@ -825,6 +829,8 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
             { // Processus fils
                 // Fermeture des pipes inutiles
                 setpgid(getppid(), getppid());
+                tab_jobs[num_job].processus[tab_jobs[num_job].nbr_processus] = getpid();
+                tab_jobs[num_job].nbr_processus = tab_jobs[num_job].nbr_processus + 1;
                 //  printf("lyessspid2 \n");
                 for (int j = 0; j < i; j++)
                 {
@@ -856,7 +862,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                     }
                     if (!fork())
                     {
-                        execute_subcommands(elements_tmp, nb_elements_tmp, pipe_tmp, 1, elements[i + 1].content);
+                        execute_subcommands(elements_tmp, nb_elements_tmp, pipe_tmp, 1, elements[i + 1].content, tab_jobs, num_job);
                     }
                     else
                         wait(NULL);
@@ -926,8 +932,8 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
 
         if (redirections_with_substituions(commandline, &red))
         {
-            char buf[1000];
-            int nb = read(args[cpt + num_elements - 2], buf, 10);
+            // char buf[1000];
+            // int nb = read(args[cpt + num_elements - 2], buf, 10);
 
             args[cpt + num_elements - 3] = NULL;
             args[cpt + num_elements - 2] = NULL;
@@ -938,6 +944,13 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
             dup2(pipe_tmp[1], 1);
             close(pipe_tmp[0]);
             close(pipe_tmp[1]);
+        }
+        else{
+            int fd_tube=open("jobs",O_WRONLY);
+           // write(fd_tube,1,sizeof(int));
+            write(fd_tube,tab_jobs,sizeof(tab_jobs));
+            close(fd_tube);
+          //  printf("hiiiiiiiiiii\n");
         }
         execvp(commande, args);
         perror("Erreur lors de l'exécution de la commande");
