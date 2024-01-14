@@ -411,16 +411,9 @@ int execute_pipes(char *commandline, char *rep_precedent)
     char *pipe_commands[MAX_SUBCOMMANDS];
     int nb_pipe_commands = 0;
     int in_fd = STDIN_FILENO; // Pour le premier pipe, on lit depuis l'entrée standard
-    char *args[NBR_MAX_ARGUMENTS] = {NULL};
-    char *commande = NULL;
-    int i = 0;
-    int index;
-    int error_in_redirections = 0;
-    int nb_redirections = 0;
     int code_retour = 0;
-    Redirection *redirections;
-    //pid_t pid;
-    //int status_cmd_externe;
+    // pid_t pid;
+    // int status_cmd_externe;
 
     extract_pipe_commands(commandline, pipe_commands, &nb_pipe_commands);
 
@@ -459,98 +452,7 @@ int execute_pipes(char *commandline, char *rep_precedent)
                 dup2(pipefd[j * 2 + 1], 1);
                 close(pipefd[j * 2 + 1]);
             }
-            // Pour l'instant on duplique le code
-            char *tmp_cmd1 = strdup(pipe_commands[j]);
-            char *tmp_cmd2 = strdup(pipe_commands[j]);
-            extract_args(tmp_cmd1, args, &commande, &tmp_cmd2, &i, strlen(tmp_cmd2));
-            if (tmp_cmd1 != NULL)
-            {
-                free(tmp_cmd1);
-            }
-            if (tmp_cmd2 != NULL)
-            {
-                free(tmp_cmd2);
-            }
-
-            // Vérifier si la commande est une redirection
-            index = commandline_is_redirection(pipe_commands[j]);
-            error_in_redirections = 0;
-            if (index != -1)
-            {
-                extract_redirections(pipe_commands[j], &redirections, &error_in_redirections, &nb_redirections);
-                if (error_in_redirections == 0)
-                {
-                    error_in_redirections = execute_redirections(redirections, nb_redirections);
-                    code_retour = error_in_redirections;
-                    pipe_commands[j] = extractCommandAndArgs(pipe_commands[j], index);
-
-                    char *tmp_cmd11 = strdup(pipe_commands[j]);
-                    char *tmp_cmd22 = strdup(pipe_commands[j]);
-                    // free args
-                    for (int k = 0; k < NBR_MAX_ARGUMENTS - 1; k++)
-                    {
-                        if (args[k] != NULL)
-                        {
-                            free(args[k]);
-                        }
-                    }
-                    extract_args(tmp_cmd11, args, &commande, &tmp_cmd22, &i, strlen(tmp_cmd22));
-                    if (tmp_cmd11 != NULL)
-                    {
-                        free(tmp_cmd11);
-                    }
-                    if (tmp_cmd22 != NULL)
-                    {
-                        free(tmp_cmd22);
-                    }
-                }
-            }
-
-            if (error_in_redirections != 0)
-            {
-                perror("Erreur lors de la redirection\n");
-                code_retour = 1;
-            }
-
-            else //(error_in_redirections == 0)
-            {
-                if (strcmp(commande, "pwd") == 0)
-                {
-                    if (args[1] == NULL)
-                    {
-                        if ((code_retour = pwd()) != 0)
-                            perror("Erreur lors de l'exécution de pwd\n");
-                    }
-                    else
-                    {
-                        perror("Commande incorrecte \n");
-                        code_retour = 1;
-                    }
-                }
-                else if (strcmp(commande, "?") == 0)
-                {
-                    if (args[1] == NULL)
-                    {
-                        printf("%d\n", code_retour);
-                        code_retour = 0;
-                    }
-                    else
-                    {
-                        perror("Commande incorrecte \n");
-                        code_retour = 1;
-                    }
-                }
-                else if (strcmp(commande, "cd") == 0)
-                {
-                    if ((code_retour = cd(args[1], rep_precedent)) != 0)
-                        perror("Erreur lors de la commande cd");
-                }
-                else
-                {
-                    execvp(commande, args);
-                }
-            }
-
+            code_retour = execute_commande(pipe_commands[j]);
             exit(code_retour);
         }
         else
@@ -570,6 +472,7 @@ int execute_pipes(char *commandline, char *rep_precedent)
     }
 
     int status;
+    // Attente de la fin des processus fils
     for (int i = 0; i < nb_pipe_commands; i++)
     {
         wait(&status);
@@ -760,10 +663,10 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 exit(EXIT_FAILURE);
             }
 
-            if (pid == 0)// Processus fils
-            { 
-                
-                setpgid(getppid(), getppid());// ajouter au groupe du pere 
+            if (pid == 0) // Processus fils
+            {
+
+                setpgid(getppid(), getppid()); // ajouter au groupe du pere
 
                 // Fermeture des pipes inutiles
                 for (int j = 0; j < i; j++)
@@ -779,7 +682,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 }
 
                 // fermeture de tube puisque on rediriger la sortie standards
-                close(pipes[i][0]); 
+                close(pipes[i][0]);
                 close(pipes[i][1]);
                 int nb_elements_tmp = 0;
                 CommandElement elements_tmp[MAX_ELEMENTS];
@@ -799,7 +702,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                         execute_subcommands(elements_tmp, nb_elements_tmp, pipe_tmp, 1, elements[i + 1].content, tab_jobs, num_job);
                     }
                     else
-                        wait(NULL);// attante bloquante des substution imbriqué
+                        wait(NULL); // attante bloquante des substution imbriqué
                     close(pipe_tmp[1]);
                     strcpy(cmd_pipe, elements[i + 1].content);
                     extract_args(cmd_pipe, args, &commande, &buf_tmp, &cpt, len);
@@ -811,7 +714,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 {
                     strcpy(cmd_pipe, elements[i + 1].content);
                     extract_args(cmd_pipe, args, &commande, &buf_tmp, &cpt, len);
-                    if (commandline_is_pipe(elements[i + 1].content)) // verification si elle contient des pipe line 
+                    if (commandline_is_pipe(elements[i + 1].content)) // verification si elle contient des pipe line
                     {
                         execute_pipes(elements[i + 1].content, commandline);
                         exit(0);
@@ -822,7 +725,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
                 perror("erreur");
             }
             else
-            {// mise a jour du tableau des jobs
+            { // mise a jour du tableau des jobs
                 tab_jobs[num_job].processus[tab_jobs[num_job].nbr_processus] = pid;
                 tab_jobs[num_job].nbr_processus = tab_jobs[num_job].nbr_processus + 1;
             }
@@ -833,8 +736,8 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
 
         for (int i = 0; i < num_elements - 1; i++) // fermeture des tube en ecriture
         {
-            close(pipes[i][1]); // Descripteur d'ecriture
-            if (redirections_with_substituions(commandline, &red)) // si il contient des redirection 
+            close(pipes[i][1]);                                    // Descripteur d'ecriture
+            if (redirections_with_substituions(commandline, &red)) // si il contient des redirection
             {
                 if (i == num_elements - 2)
                     dup2(pipes[i][0], 0);
@@ -843,8 +746,8 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
         cpt = 0;
         strcpy(cmd_pipe, elements[0].content);
         extract_args(elements[0].content, args, &commande, &buf_tmp, &cpt, len); // extraire la commande et les argument dans un tableau
-        for (int i = 0; i < num_elements - 1; i++) // pour modifie les arrgument qui contient des substitution en donnant 
-        //leur path a la place 
+        for (int i = 0; i < num_elements - 1; i++)                               // pour modifie les arrgument qui contient des substitution en donnant
+        // leur path a la place
         {
             args[i + cpt] = NULL;
             if (args[i + cpt] == NULL)
@@ -865,7 +768,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
 
         if (redirections_with_substituions(commandline, &red)) // si il contient des redirection
         {
-            args[cpt + num_elements - 3] = NULL;// on enleve "<"
+            args[cpt + num_elements - 3] = NULL; // on enleve "<"
             args[cpt + num_elements - 2] = NULL; // on onleve le chemin de la redirection puisque on deja rederiger l'entrer standards
         }
 
@@ -905,7 +808,7 @@ int execute_subcommands(CommandElement elements[], int num_elements, int pipe_tm
             }
         }
         if (pipe_line) // appel de la fonction des pipe line pour execter puisque on a remplcer toutes les substitution
-        // par le chemin et on bien fait attention a ne pas fermer les bon discripteur des tubes 
+        // par le chemin et on bien fait attention a ne pas fermer les bon discripteur des tubes
         {
             execute_pipes(cmd_line_tmp, NULL);
             exit(0);
@@ -970,4 +873,108 @@ int redirections_with_substituions(const char *commandLine, char **extracted)
         current++;
     }
     return found;
+}
+
+int execute_commande(char *commandline)
+{
+    int code_retour = 0;
+    char *args[NBR_MAX_ARGUMENTS] = {NULL};
+    char *commande = NULL;
+    int i = 0;
+    int index;
+    int error_in_redirections = 0;
+    Redirection *redirections;
+    int nb_redirections = 0;
+
+    char *tmp_cmd1 = strdup(commandline);
+    char *tmp_cmd2 = strdup(commandline);
+    extract_args(tmp_cmd1, args, &commande, &tmp_cmd2, &i, strlen(tmp_cmd2));
+    if (tmp_cmd1 != NULL)
+    {
+        free(tmp_cmd1);
+    }
+    if (tmp_cmd2 != NULL)
+    {
+        free(tmp_cmd2);
+    }
+
+    // Vérifier si la commande est une redirection
+    index = commandline_is_redirection(commandline);
+    error_in_redirections = 0;
+    if (index != -1)
+    {
+        extract_redirections(commandline, &redirections, &error_in_redirections, &nb_redirections);
+        if (error_in_redirections == 0)
+        {
+            error_in_redirections = execute_redirections(redirections, nb_redirections);
+            code_retour = error_in_redirections;
+            commandline = extractCommandAndArgs(commandline, index);
+
+            char *tmp_cmd11 = strdup(commandline);
+            char *tmp_cmd22 = strdup(commandline);
+
+            // free args
+            for (int k = 0; k < NBR_MAX_ARGUMENTS - 1; k++)
+            {
+                if (args[k] != NULL)
+                {
+                    free(args[k]);
+                }
+            }
+
+            extract_args(tmp_cmd11, args, &commande, &tmp_cmd22, &i, strlen(tmp_cmd22));
+            if (tmp_cmd11 != NULL)
+            {
+                free(tmp_cmd11);
+            }
+            if (tmp_cmd22 != NULL)
+            {
+                free(tmp_cmd22);
+            }
+        }
+    }
+    if (error_in_redirections != 0)
+    {
+        perror("Erreur lors de la redirection\n");
+        code_retour = 1;
+    }
+    else
+    { //(error_in_redirections == 0)
+        if (strcmp(commande, "pwd") == 0)
+        {
+            if (args[1] == NULL)
+            {
+                if ((code_retour = pwd()) != 0)
+                    perror("Erreur lors de l'exécution de pwd\n");
+            }
+            else
+            {
+                perror("Commande incorrecte \n");
+                code_retour = 1;
+            }
+        }
+        else if (strcmp(commande, "?") == 0)
+        {
+            if (args[1] == NULL)
+            {
+                printf("%d\n", code_retour);
+                code_retour = 0;
+            }
+            else
+            {
+                perror("Commande incorrecte \n");
+                code_retour = 1;
+            }
+        }
+        else if (strcmp(commande, "cd") == 0)
+        {
+            if ((code_retour = cd(args[1], NULL)) != 0)
+                perror("Erreur lors de la commande cd");
+        }
+        else
+        {
+            execvp(commande, args);
+        }
+    }
+    return code_retour;
 }
